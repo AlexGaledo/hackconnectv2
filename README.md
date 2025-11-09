@@ -18,11 +18,11 @@ It utilizes **Web3** for a **secure environment**, **transparent transactions**,
 | Layer        | Technology            |
 |--------------|------------------------|
 | Frontend     | ReactJ+Vite, TailwindCSS |  
-| Backend      | Firebase                  |
+| Backend      | Firebase, Google Cloud Platform                  |
 | Smart Contracts | Solidity    |
 | Web3 SDK     | Thirdweb v5            |
-| Database     | PostgreSQL             |
-| Hosting      | Vercel/Render          |
+| Database     | Firebase Firestore             |
+| Hosting      | Firebase Hosting          |
 
 ---
 ## How to use
