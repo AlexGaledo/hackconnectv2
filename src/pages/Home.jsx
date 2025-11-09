@@ -1,6 +1,7 @@
 import { auth, provider, signInWithPopup } from "../services/firebase";
 import { GoogleAuthProvider } from "firebase/auth";
 import { useUser } from "../context/UserContext";
+import { btnPrimary } from "../styles/reusables";
 
 export default function Home() {
   const { user, setUser } = useUser();
@@ -39,7 +40,7 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-grey-100 to-red-100">
       <h1>Welcome to the HackConnect Home Page</h1>
-      <button className="border border-gray-500 transition duration-300 ease-in-out px-4 hover:scale-105"
+      <button className={btnPrimary}
         onClick={handleGoogleSignIn}>
         {!user?"Sign in with Google":"Signed in as "+user.name}
       </button>
