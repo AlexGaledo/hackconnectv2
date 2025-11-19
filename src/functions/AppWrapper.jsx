@@ -1,16 +1,16 @@
 
 
 import App from "../App";
-import { BrowserRouter } from "react-router-dom";
-import { UserProvider } from "./UserContext";
+import { HashRouter } from "react-router-dom";
+import { UserProvider } from "../context/UserContext";
 
 export default function AppWrapper(){
     return (
     <>
     <UserProvider>
-    <BrowserRouter>
+    <HashRouter>
         <App />
-    </BrowserRouter>     
+    </HashRouter>     
     </UserProvider>   
     </>
     )

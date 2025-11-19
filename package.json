@@ -1,5 +1,5 @@
 {
-  "name": "hackconnectv2",
+  "name": "hconnect_frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,10 +13,13 @@
     "@tailwindcss/vite": "^4.1.17",
     "@vitejs/plugin-react": "^5.1.0",
     "firebase": "^12.5.0",
+    "framer-motion": "^12.23.24",
+    "lucide-react": "^0.554.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.5",
-    "tailwindcss": "^4.1.17"
+    "tailwindcss": "^4.1.17",
+    "thirdweb": "^5.112.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

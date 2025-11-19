@@ -8,19 +8,16 @@ export function UserProvider({children}){
     const [user, setUser] = useState(null);
 
     const addUser = (userData) => {
-        try{
-            if(!userData.uid || !userData.displayName || !userData.email){
-                throw new Error("Missing required user fields");
-            }
-        } catch (error){
-            console.error("Error adding user:", error);
-            return;
-        }
+        // try{
+        //     if(!userData.uid || !userData.displayName || !userData.email){
+        //         throw new Error("Missing required user fields");
+        //     }
+        // } catch (error){
+        //     console.error("Error adding user:", error);
+        //     return;
+        // }
 
         setUser({
-            id: userData.uid,
-            name: userData.displayName,
-            email: userData.email,
             walletAddress: userData.walletAddress || null,
         });
     }
