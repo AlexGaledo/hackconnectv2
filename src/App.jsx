@@ -8,6 +8,8 @@ import Community from './pages/Community/Community.jsx';
 import Rewards from './pages/Rewards/Rewards.jsx';
 import TicketInfo from './pages/TIckets/TicketInfo.jsx';
 import TicketList from './pages/TIckets/TicketList.jsx';
+import EventList from './pages/Events/EventList.jsx';
+import EventInfo from './pages/Events/EventInfo.jsx';
 import NavBar from './components/Navbar/Navbar.jsx';
 import Footer from './components/Footer/Footer.jsx';
 import { useEffect } from 'react';
@@ -117,6 +119,32 @@ function App() {
                 transition={{ duration: 0.3 }}
               >
                 <TicketList />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/Events"
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <EventList />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/Event"
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <EventInfo />
               </motion.div>
             }
           />

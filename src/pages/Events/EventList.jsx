@@ -1,0 +1,217 @@
+import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useActiveWallet } from "thirdweb/react";
+import { btnPrimary } from "../../styles/reusables";
+
+// Browse Events page with search + filters
+// Schema reference used for mock data
+export default function EventList() {
+	const navigate = useNavigate();
+	const activeWallet = useActiveWallet();
+	const address = activeWallet?.getAccount()?.address;
+
+	useEffect(() => { if (!address) navigate("/"); }, [address, navigate]);
+
+	// Mock events (replace with Firestore query later)
+	const mockEvents = [
+		{
+			id: "EVT-CBH-2025",
+			hostAddress: "0x1234...ABCD",
+			title: "ChainBuilders Winter Hackathon",
+			description: "Collaborative build sprint focusing on tooling, infra and DX.",
+			eventLink: "https://example.com/cbh",
+			imageUrl: "https://placehold.co/400x200?text=Hackathon",
+			startDate: new Date(Date.now() + 3 * 86400000).toISOString(),
+			endDate: new Date(Date.now() + 5 * 86400000).toISOString(),
+			status: "upcoming",
+			ticketTiers: [
+				{ tierName: "General", price: 0, ticketCount: 200, ticketsSold: 48, hackRewards: 0 },
+				{ tierName: "Supporter", price: 5, ticketCount: 60, ticketsSold: 14, hackRewards: 20 },
+				{ tierName: "VIP", price: 10, ticketCount: 20, ticketsSold: 6, hackRewards: 50 },
+			],
+		},
+		{
+			id: "EVT-DEVCON-MEET",
+			hostAddress: "0x9999...BEEF",
+			title: "DevConnect Builders Meetup",
+			description: "Casual networking + lightning talks on protocol design.",
+			eventLink: "https://example.com/devmeet",
+			imageUrl: "https://placehold.co/400x200?text=Meetup",
+			startDate: new Date(Date.now() - 2 * 86400000).toISOString(),
+			endDate: new Date(Date.now() - 86400000).toISOString(),
+			status: "completed",
+			ticketTiers: [
+				{ tierName: "General", price: 0, ticketCount: 150, ticketsSold: 150, hackRewards: 0 },
+				{ tierName: "VIP", price: 8, ticketCount: 30, ticketsSold: 28, hackRewards: 25 },
+			],
+		},
+		{
+			id: "EVT-OSS-SPRINT",
+			hostAddress: "0x8888...FEED",
+			title: "Open Source Maintenance Sprint",
+			description: "Focus on issue triage, docs polish, dependency updates.",
+			eventLink: "https://example.com/oss-sprint",
+			imageUrl: "https://placehold.co/400x200?text=Sprint",
+			startDate: new Date(Date.now() - 86400000).toISOString(),
+			endDate: new Date(Date.now() + 2 * 86400000).toISOString(),
+			status: "ongoing",
+			ticketTiers: [
+				{ tierName: "General", price: 0, ticketCount: 100, ticketsSold: 73, hackRewards: 0 },
+				{ tierName: "Supporter", price: 4, ticketCount: 40, ticketsSold: 22, hackRewards: 15 },
+			],
+		},
+	];
+
+	// Filters state
+	const [search, setSearch] = useState("");
+	const [statusFilter, setStatusFilter] = useState("all");
+	const [minPrice, setMinPrice] = useState('');
+	const [maxPrice, setMaxPrice] = useState('');
+
+	const filteredEvents = useMemo(() => {
+		return mockEvents.filter(ev => {
+			const term = search.toLowerCase();
+			const matchesSearch = !term || ev.title.toLowerCase().includes(term) || ev.description.toLowerCase().includes(term);
+			const matchesStatus = statusFilter === 'all' || ev.status === statusFilter;
+			// Price filter: match if ANY tier falls inside range
+			const anyTierWithin = ev.ticketTiers.some(tier => {
+				const minOK = minPrice === '' || tier.price >= Number(minPrice);
+				const maxOK = maxPrice === '' || tier.price <= Number(maxPrice);
+				return minOK && maxOK;
+			});
+			return matchesSearch && matchesStatus && anyTierWithin;
+		});
+	}, [search, statusFilter, minPrice, maxPrice, mockEvents]);
+
+	const short = (addr) => (addr ? `${addr.slice(0,6)}...${addr.slice(-4)}` : "");
+	const fmt = (iso) => { try { return new Date(iso).toLocaleDateString(); } catch { return iso; } };
+
+	return (
+		<div className="relative min-h-screen flex flex-col">
+			<div className="absolute inset-0 z-0">
+				{[0,1,2,3].map(i => (
+					<div
+						key={i}
+						className="absolute rounded-xl bg-white/0 border border-white/5 backdrop-blur-md"
+						style={{
+							width: "336px",
+							height: "100vh",
+							top: 0,
+							left: `${i * 25}%`,
+							WebkitMaskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%)",
+							maskImage: "linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%)",
+						}}
+					/>
+				))}
+			</div>
+
+			<section className="relative z-10 pt-8 sm:pt-14 pb-2 px-4 sm:px-6">
+				<div className="container mx-auto">
+					<div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+						<div>
+							<h1
+								className="text-4xl sm:text-5xl md:text-5xl font-semibold bg-clip-text text-transparent"
+								style={{ backgroundImage: "linear-gradient(to bottom, #d8e0e6 0%, #f0f3f6 60%, #ffffff 100%)" }}
+							>
+								Browse Events
+							</h1>
+							<p className="text-gray-300/70 mt-2 text-sm sm:text-base">Connected as {address ? short(address) : 'wallet'}.</p>
+						</div>
+						<div className="flex gap-3">
+							<button className={btnPrimary} onClick={() => navigate('/Create')}>Create Event</button>
+							<button className={btnPrimary} onClick={() => navigate('/Dashboard')}>Back to Dashboard</button>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<section className="relative z-10 px-4 sm:px-6 flex-1 pb-6">
+				<div className="container mx-auto rounded-2xl backdrop-blur-sm bg-white/0 border border-white/5 p-6 h-full flex flex-col">
+					{/* Filters */}
+					<div className="flex flex-col lg:flex-row gap-4 lg:items-end lg:justify-between">
+						<div className="flex flex-wrap gap-3 items-end">
+							<div className="flex flex-col">
+								<label className="text-xs text-gray-300/60 mb-1">Search</label>
+								<input
+									value={search}
+									onChange={e => setSearch(e.target.value)}
+									placeholder="Title or description..."
+									className="h-9 px-3 rounded-md bg-white/5 border border-white/10 text-white/90 text-sm focus:outline-none focus:border-white/20"
+								/>
+							</div>
+							<div className="flex flex-col">
+								<label className="text-xs text-gray-300/60 mb-1">Status</label>
+								<select
+									value={statusFilter}
+									onChange={e => setStatusFilter(e.target.value)}
+									className="h-9 px-3 rounded-md bg-white/5 border border-white/10 text-white/90 text-sm focus:outline-none focus:border-white/20"
+								>
+									<option value="all">All</option>
+									<option value="upcoming">Upcoming</option>
+									<option value="ongoing">Ongoing</option>
+									<option value="completed">Completed</option>
+									<option value="postponed">Postponed</option>
+								</select>
+							</div>
+							<div className="flex flex-col w-24">
+								<label className="text-xs text-gray-300/60 mb-1">Min Price</label>
+								<input
+									type="number"
+									value={minPrice}
+									onChange={e => setMinPrice(e.target.value)}
+									className="h-9 px-3 rounded-md bg-white/5 border border-white/10 text-white/90 text-sm focus:outline-none focus:border-white/20"
+								/>
+							</div>
+							<div className="flex flex-col w-24">
+								<label className="text-xs text-gray-300/60 mb-1">Max Price</label>
+								<input
+									type="number"
+									value={maxPrice}
+									onChange={e => setMaxPrice(e.target.value)}
+									className="h-9 px-3 rounded-md bg-white/5 border border-white/10 text-white/90 text-sm focus:outline-none focus:border-white/20"
+								/>
+							</div>
+							<button
+								onClick={() => { setSearch(''); setStatusFilter('all'); setMinPrice(''); setMaxPrice(''); }}
+								className="h-9 px-4 rounded-full border border-white/10 text-white/80 hover:bg-white/10 text-sm"
+							>Reset</button>
+						</div>
+						<div className="text-xs text-gray-400">Showing {filteredEvents.length} of {mockEvents.length} events</div>
+					</div>
+
+					{/* Events grid */}
+					<div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+						{filteredEvents.map(ev => {
+							const cheapest = ev.ticketTiers.reduce((min, t) => t.price < min ? t.price : min, ev.ticketTiers[0]?.price || 0);
+							return (
+								<div key={ev.id} className="rounded-xl bg-white/0 border border-white/5 p-4 hover:bg-white/5 transition flex flex-col">
+									<div className="flex-1">
+										<div className="text-white font-medium line-clamp-2">{ev.title}</div>
+										<div className="text-xs text-gray-300/70 mt-1">{fmt(ev.startDate)} – {fmt(ev.endDate)}</div>
+										<div className={`text-xs mt-1 font-medium capitalize ${ev.status === 'upcoming' ? 'text-green-300' : ev.status === 'ongoing' ? 'text-yellow-300' : ev.status === 'completed' ? 'text-gray-300' : 'text-red-300'}`}>{ev.status}</div>
+										<div className="text-xs text-gray-400 mt-1 line-clamp-3">{ev.description}</div>
+										<div className="text-xs text-gray-300/60 mt-2">Cheapest: {cheapest === 0 ? 'Free' : `${cheapest} $`}</div>
+										<div className="mt-2 flex flex-wrap gap-1">
+											{ev.ticketTiers.slice(0,3).map(t => (
+												<span key={t.tierName} className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/70">
+													{t.tierName}: {t.price === 0 ? 'Free' : `${t.price}$`}
+												</span>
+											))}
+										</div>
+									</div>
+									<button
+										className="mt-4 h-9 px-4 rounded-full border border-white/10 text-white/90 hover:bg-white/10 text-sm w-fit"
+										onClick={() => navigate(`/Event?id=${ev.id}`)}
+									>View more</button>
+								</div>
+							);
+						})}
+						{filteredEvents.length === 0 && (
+							<div className="text-xs text-gray-400 col-span-full">No events match your filters.</div>
+						)}
+					</div>
+				</div>
+			</section>
+		</div>
+	);
+}

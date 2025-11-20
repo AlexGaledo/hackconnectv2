@@ -90,7 +90,7 @@ export default function Dashboard() {
 					<div className="lg:col-span-2 rounded-2xl backdrop-blur-sm bg-white/0 border border-white/5 p-6">
 						<div className="flex items-center justify-between">
 							<h2 className="text-xl sm:text-2xl font-semibold text-white">Upcoming Events</h2>
-							<button className="text-sm text-gray-300/80 hover:text-white" onClick={() => navigate("/")}>View all</button>
+							<button className="text-sm text-gray-300/80 hover:text-white" onClick={() => navigate("/Events")}>View all upcoming events</button>
 						</div>
 						<div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
 							{[{
