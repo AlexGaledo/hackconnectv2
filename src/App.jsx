@@ -20,7 +20,7 @@ function App() {
   // Dynamic tab title
   useEffect(() => {
     if (location.pathname === "/") {
-      document.title = "Landing | HackConnect";
+      document.title = "HackConnect";
     } else {
       document.title = `${location.pathname.slice(1)} | HackConnect`;
     }
