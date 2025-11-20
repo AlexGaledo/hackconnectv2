@@ -18,7 +18,7 @@ function App() {
     if (location.pathname === "/") {
       document.title = "Landing | HackConnect";
     } else {
-      document.title = "HackConnect";
+      document.title = `${location.pathname.slice(1)} | HackConnect`;
     }
   }, [location.pathname]);
 

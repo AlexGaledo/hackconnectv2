@@ -1,0 +1,79 @@
+Initialize Guide
+
+**FIREBASE HOSTING**
+- npm install firebase
+- firebase init(use sparkplan only services)
+- npm run build, modify firebase.json || run firebase init to add new services
+- firebase deploy
+
+**Thirdweb**
+- npm install Thirdweb
+- npx thirdweb create
+- contract deployment (not implemented)
+
+**Tailwind**
+- npm install tailwindcss @tailwindcss/vite
+- import @tailwindcss/vite
+- configure vite.config.ts add tailwindcss() inside the plugins:[]
+
+
+
+** Model Schema ** ( non - relational )
+
+Wallets (Collection)
+ └─ uid (Document)
+     ├─ walletAddress: string
+     ├─ email: string
+     ├─ username: string
+     ├─ profileUrl: string
+     ├─ reputation: number
+     ├─ balance: number
+     ├─ createdAt: timestamp
+     └─ (Optional) projects: [projectId1, projectId2]
+
+Events (Collection)
+ └─ uid (Document)
+     ├─ hostAddress: string
+     ├─ title: string
+     ├─ description: string
+     ├─ eventLink: string
+     ├─ imageUrl: string
+     ├─ startDate: timestamp
+     ├─ endDate: timestamp
+     ├─ status: string (upcoming/ongoing/completed/postponed)
+     └─ ticketTiers (Array of Objects or Subcollection)
+         ├─ tierName: string
+         ├─ price: number
+         ├─ ticketCount: number
+         ├─ ticketsSold: number (atomic increment)
+         └─ hackRewards: number
+
+Tickets (Collection)
+ └─ uid (Document)
+     ├─ walletAddress: string
+     ├─ eventId: string
+     ├─ tierName: string
+     ├─ priceBought: number
+     ├─ purchasedAt: timestamp
+     ├─ status: string (valid/used/refunded)
+     └─ (Optional) ticketQRCode: string
+
+Projects (Collection)
+ └─ uid (Document)
+     ├─ walletAddress: string
+     ├─ title: string
+     ├─ description: string
+     ├─ imageUrl: string
+     ├─ links: [string]  // array of project/demo links
+     ├─ status: string (active/completed)
+     └─ createdAt: timestamp
+
+
+
+
+
+
+
+
+
+
