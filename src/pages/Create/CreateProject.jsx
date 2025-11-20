@@ -12,8 +12,12 @@ export default function CreateProject() {
 	const [description, setDescription] = useState("");
 	const [startDate, setStartDate] = useState("");
 	const [endDate, setEndDate] = useState("");
-	const [hackRewards, setHackRewards] = useState("");
-	const [ticketPrice, setTicketPrice] = useState("");
+	const [eventLink, setEventLink] = useState("");
+	const [imageUrl, setImageUrl] = useState("");
+	const [status, setStatus] = useState("upcoming");
+	const [ticketTiers, setTicketTiers] = useState([
+		{ tierName: "General", price: "0", ticketCount: "100", hackRewards: "0" },
+	]);
 	const [submitting, setSubmitting] = useState(false);
 	const [touched, setTouched] = useState(false);
 
@@ -30,14 +34,25 @@ export default function CreateProject() {
 		setTouched(true);
 		if (!valid) return;
 		setSubmitting(true);
+		const tierPayload = ticketTiers
+			.filter(t => t.tierName.trim())
+			.map(t => ({
+				tierName: t.tierName.trim(),
+				price: Number(t.price) || 0,
+				ticketCount: Number(t.ticketCount) || 0,
+				ticketsSold: 0,
+				hackRewards: Number(t.hackRewards) || 0,
+			}));
 		const payload = {
+			hostAddress: address,
 			title: title.trim(),
 			description: description.trim(),
-			startDate,
+			eventLink: eventLink.trim() || null,
+			imageUrl: imageUrl.trim() || null,
+			startDate: startDate,
 			endDate: endDate || null,
-			hackRewards: hackRewards !== "" ? Number(hackRewards) : null,
-			ticketPrice: ticketPrice !== "" ? Number(ticketPrice) : null,
-			creator: address,
+			status,
+			ticketTiers: tierPayload,
 			createdAt: new Date().toISOString(),
 		};
 		console.log("[Event Create]", payload);
@@ -48,10 +63,24 @@ export default function CreateProject() {
 			setDescription("");
 			setStartDate("");
 			setEndDate("");
-			setHackRewards("");
-			setTicketPrice("");
+			setEventLink("");
+			setImageUrl("");
+			setStatus("upcoming");
+			setTicketTiers([{ tierName: "General", price: "0", ticketCount: "100", hackRewards: "0" }]);
 			navigate("/Dashboard");
 		}, 600);
+	};
+
+	const updateTier = (index, field, value) => {
+		setTicketTiers(prev => prev.map((t,i) => i === index ? { ...t, [field]: value } : t));
+	};
+
+	const addTier = () => {
+		setTicketTiers(prev => [...prev, { tierName: "", price: "0", ticketCount: "0", hackRewards: "0" }]);
+	};
+
+	const removeTier = (index) => {
+		setTicketTiers(prev => prev.filter((_,i) => i !== index));
 	};
 
 	return (
@@ -87,16 +116,16 @@ export default function CreateProject() {
 							Back to Dashboard
 						</button>
 						<h1
-							className="text-4xl sm:text-5xl md:text-6xl font-bold bg-clip-text text-transparent"
+							className="text-4xl sm:text-5xl md:text-5xl font-semibold bg-clip-text text-transparent"
 							style={{
 								backgroundImage:
-									"linear-gradient(to bottom, #B4AFA8 0%, #E5E5E5 56%, #E5E5E5 75%, #FFFFFF 100%)",
+									"linear-gradient(to bottom, #d9e1e7 0%, #f1f4f6 60%, #ffffff 100%)",
 							}}
 						>
 							Create Event
 						</h1>
-						<p className="text-gray-300/70 mt-2 text-sm sm:text-base max-w-md">
-							Launch a new hackathon, meetup, or workshop. Provide clear details so builders can engage.
+						<p className="text-gray-300/80 mt-2 text-sm sm:text-base max-w-md">
+							Launch a hackathon or meetup. Share the essentials; keep it crisp.
 						</p>
 					</div>
 
@@ -169,35 +198,94 @@ export default function CreateProject() {
 							</div>
 						</div>
 
-						{/* Optional financials */}
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
 							<div className="space-y-2">
-								<label className="block text-sm font-medium text-gray-300/80">$HACK Rewards (optional)</label>
+								<label className="block text-sm font-medium text-gray-300/80">Event Link (optional)</label>
 								<input
-									type="number"
-									min="0"
-									step="0.01"
-									inputMode="decimal"
-									placeholder="e.g. 500"
-									value={hackRewards}
-									onChange={(e) => setHackRewards(e.target.value)}
+									type="url"
+									placeholder="https://example.com/hackathon"
+									value={eventLink}
+									onChange={(e) => setEventLink(e.target.value)}
 									className="w-full rounded-xl bg-white/0 border border-white/5 focus:border-white/30 focus:outline-none px-4 py-3 text-white placeholder-gray-500 text-sm"
 								/>
 							</div>
 							<div className="space-y-2">
-								<label className="block text-sm font-medium text-gray-300/80">Ticket Price (optional)</label>
+								<label className="block text-sm font-medium text-gray-300/80">Image URL (optional)</label>
 								<input
-									type="number"
-									min="0"
-									step="0.01"
-									inputMode="decimal"
-									placeholder="e.g. 0 or 10"
-									value={ticketPrice}
-									onChange={(e) => setTicketPrice(e.target.value)}
+									type="url"
+									placeholder="https://images.host/banner.png"
+									value={imageUrl}
+									onChange={(e) => setImageUrl(e.target.value)}
 									className="w-full rounded-xl bg-white/0 border border-white/5 focus:border-white/30 focus:outline-none px-4 py-3 text-white placeholder-gray-500 text-sm"
 								/>
 							</div>
 						</div>
+
+						<div className="space-y-2">
+							<label className="block text-sm font-medium text-gray-300/80">Status</label>
+							<select
+								value={status}
+								onChange={(e) => setStatus(e.target.value)}
+								className="w-full rounded-xl bg-white/0 border border-white/5 focus:border-white/30 focus:outline-none px-4 py-3 text-white text-sm"
+							>
+								{["upcoming","ongoing","completed","postponed"].map(s => <option key={s} value={s}>{s}</option>)}
+							</select>
+						</div>
+
+						<div className="space-y-4">
+							<div className="flex items-center justify-between">
+								<h3 className="text-white/90 font-medium text-sm">Ticket Tiers (optional)</h3>
+								<button type="button" onClick={addTier} className="h-9 px-4 rounded-full border border-white/10 text-white/80 hover:bg-white/10 text-xs">Add Tier</button>
+							</div>
+							<div className="space-y-3">
+								{ticketTiers.map((tier, i) => {
+									const hasName = tier.tierName.trim();
+									return (
+										<div key={i} className="grid grid-cols-2 sm:grid-cols-6 gap-3 p-3 rounded-xl border border-white/5 bg-white/0">
+											<input
+												type="text"
+												placeholder="Tier name"
+												value={tier.tierName}
+												onChange={e => updateTier(i,'tierName', e.target.value)}
+												className="rounded-lg bg-white/0 border border-white/5 focus:border-white/30 focus:outline-none px-3 py-2 text-white text-xs sm:text-sm col-span-2 sm:col-span-2"
+											/>
+											<input
+												type="number"
+												min="0"
+												value={tier.price}
+												placeholder="Price"
+												onChange={e => updateTier(i,'price', e.target.value)}
+												className="rounded-lg bg-white/0 border border-white/5 focus:border-white/30 focus:outline-none px-3 py-2 text-white text-xs sm:text-sm col-span-1"
+											/>
+											<input
+												type="number"
+												min="0"
+												value={tier.ticketCount}
+												placeholder="Count"
+												onChange={e => updateTier(i,'ticketCount', e.target.value)}
+												className="rounded-lg bg-white/0 border border-white/5 focus:border-white/30 focus:outline-none px-3 py-2 text-white text-xs sm:text-sm col-span-1"
+											/>
+											<input
+												type="number"
+												min="0"
+												value={tier.hackRewards}
+												placeholder="$HACK"
+												onChange={e => updateTier(i,'hackRewards', e.target.value)}
+												className="rounded-lg bg-white/0 border border-white/5 focus:border-white/30 focus:outline-none px-3 py-2 text-white text-xs sm:text-sm col-span-1"
+											/>
+											{ticketTiers.length > 1 && (
+												<button type="button" onClick={() => removeTier(i)} className="text-xs text-gray-400 hover:text-red-300 col-span-2 sm:col-span-1 text-left sm:text-right">Remove</button>
+											)}
+										</div>
+									);
+								})}
+							</div>
+							{ticketTiers.some(t => t.tierName.trim() && (!t.price || !t.ticketCount)) && (
+								<p className="text-xs text-red-400">Provide price and count for named tiers.</p>
+							)}
+						</div>
+
+						{/* Ticket tiers replace old single price/rewards inputs */}
 
 						<div className="pt-2">
 							<button

@@ -29,4 +29,3 @@ dist-ssr
 .env
 dist
 functionsGenai
-package-lock.json
