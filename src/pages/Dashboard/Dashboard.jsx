@@ -16,6 +16,12 @@ export default function Dashboard() {
 
 	const short = (addr) => (addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "");
 
+	// Mock tickets referencing Events schema fields
+	const tickets = [
+		{ id: "CBH-1", event: "ChainBuilders Hackathon", tierName: "General", price: 0, ticketCount: 1, status: "valid", date: "Dec 02" },
+		{ id: "DCM-2", event: "DevConnect Meetup", tierName: "VIP", price: 10, ticketCount: 1, status: "valid", date: "Dec 10" },
+	];
+
 	return (
 		<div className="relative">
 			<div className="absolute inset-0 z-0">
@@ -110,11 +116,29 @@ export default function Dashboard() {
 					</div>
 
 					<div className="rounded-2xl backdrop-blur-sm bg-white/0 border border-white/5 p-6">
-						<h2 className="text-xl sm:text-2xl font-semibold text-white">Quick Actions</h2>
-						<div className="mt-4 grid grid-cols-1 gap-3">
-							<button className={btnPrimary} onClick={() => navigate("/")}>Submit Project</button>
-							<button className={btnPrimary} onClick={() => navigate("/")}>Find a Team</button>
-							<button className={btnPrimary} onClick={() => navigate("/")}>View Rewards</button>
+						<div className="flex items-center justify-between">
+							<h2 className="text-xl sm:text-2xl font-semibold text-white">Your Tickets</h2>
+							<button className="text-sm text-gray-300/80 hover:text-white" onClick={() => navigate("/Tickets")}>view all tickets</button>
+						</div>
+						<div className="mt-4 space-y-3">
+							{tickets.map((t) => (
+								<div key={t.id} className="rounded-xl bg-white/0 border border-white/5 p-4 hover:bg-white/5 transition">
+									<div className="flex items-start justify-between">
+										<div>
+											<div className="text-white font-medium">{t.event}</div>
+											<div className="text-xs text-gray-300/70 mt-1">{t.date} • {t.tierName} Tier</div>
+											<div className="text-xs text-gray-400 mt-1">Status: {t.status}</div>
+										</div>
+										<div className="text-right">
+											<div className="text-white/90 text-sm">{t.price === 0 ? 'Free' : `${t.price} $`}</div>
+											<button className="mt-2 h-8 px-3 rounded-full border border-white/10 text-white/80 hover:bg-white/10 text-xs" onClick={() => navigate("/Ticket")}>View more</button>
+										</div>
+									</div>
+								</div>
+							))}
+							{tickets.length === 0 && (
+								<div className="text-xs text-gray-400">No tickets yet. Join an event to get started.</div>
+							)}
 						</div>
 					</div>
 				</div>

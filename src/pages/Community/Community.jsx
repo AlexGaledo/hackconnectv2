@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useActiveWallet } from "thirdweb/react";
 import { btnPrimary } from "../../styles/reusables";
+import { useEffect } from "react";
 
 export default function Community() {
 	const navigate = useNavigate();
@@ -8,6 +9,12 @@ export default function Community() {
 	const address = activeWallet?.getAccount()?.address;
 
 	const short = (addr) => (addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "");
+	useEffect(() => {
+		if (!address) {
+			navigate("/");
+		}
+	}, [address, navigate]);
+
 
 	return (
 		<div className="relative">

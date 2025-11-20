@@ -6,6 +6,8 @@ import Dashboard from './pages/Dashboard/Dashboard.jsx';
 import CreateProject from './pages/Create/CreateProject.jsx';
 import Community from './pages/Community/Community.jsx';
 import Rewards from './pages/Rewards/Rewards.jsx';
+import TicketInfo from './pages/TIckets/TicketInfo.jsx';
+import TicketList from './pages/TIckets/TicketList.jsx';
 import NavBar from './components/Navbar/Navbar.jsx';
 import Footer from './components/Footer/Footer.jsx';
 import { useEffect } from 'react';
@@ -89,6 +91,32 @@ function App() {
                 transition={{ duration: 0.3 }}
               >
                 <Rewards />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/Ticket"
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <TicketInfo />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/Tickets"
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <TicketList />
               </motion.div>
             }
           />

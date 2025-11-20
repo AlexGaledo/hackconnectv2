@@ -19,7 +19,6 @@ Initialize Guide
 
 
 ** Model Schema ** ( non - relational )
-
 Wallets (Collection)
  └─ uid (Document)
      ├─ walletAddress: string
@@ -69,6 +68,14 @@ Projects (Collection)
      └─ createdAt: timestamp
 
 
+** System Flow **
+Users(Creators) signs in -> create event -> create ticket tiers
+Users(Joiners) signs in -> join event -> buy ticket -> generates qr(with unique id) -> website verifies ticket
+
+
+** Core loop **
+-> Check dashboard for ticket info
+-> Another QR generated for changing ticket status
 
 
 
