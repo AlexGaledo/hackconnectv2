@@ -6,19 +6,22 @@ const UserContext = createContext(null);
 
 export function UserProvider({children}){
     const [user, setUser] = useState(null);
+    const [tickets, setTickets] = useState([]);
+    const [events, setEvents] = useState([]);
 
     const addUser = (userData) => {
-        // try{
-        //     if(!userData.uid || !userData.displayName || !userData.email){
-        //         throw new Error("Missing required user fields");
-        //     }
-        // } catch (error){
-        //     console.error("Error adding user:", error);
-        //     return;
-        // }
-
+        if(!userData || Object.keys(userData).length === 0){
+            console.error("No user data provided to addUser");
+            return;
+        }
+        
         setUser({
             walletAddress: userData.walletAddress || null,
+            displayName: userData.username || "Anonymous",
+            email: userData.email || null,
+            profilePicture: userData.profileUrl || null,
+            reputation: userData.reputation || 0,
+            eventsParticipated: userData.eventsJoined || 0
         });
     }
 
@@ -38,10 +41,26 @@ export function UserProvider({children}){
         }));     
     }
 
+    const addTickets = (ticketsData) => {
+        if(!ticketsData || !Array.isArray(ticketsData)){
+            console.error("Invalid tickets data provided to addTickets");
+            return;
+        }
+        setTickets(ticketsData);
+    }
+
+    const addEvents = (eventsData) => {
+        if(!eventsData || !Array.isArray(eventsData)){
+            console.error("Invalid events data provided to addEvents");
+            return;
+        }
+        setEvents(eventsData);
+    }
 
     return(
         <>
-        <UserContext.Provider value={{user, setUser}}>
+        <UserContext.Provider value={{ user, setUser, addUser, updateUser, tickets, 
+            setTickets, addTickets, events, setEvents, addEvents }}>
             {children}
         </UserContext.Provider>
         </>

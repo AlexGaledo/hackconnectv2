@@ -136,7 +136,7 @@ function App() {
             }
           />
           <Route
-            path="/Event"
+            path="/Event/:id"
             element={
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

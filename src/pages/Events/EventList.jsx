@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useActiveWallet } from "thirdweb/react";
 import { btnPrimary } from "../../styles/reusables";
+import { useUser } from "../../context/UserContext";
 
 // Browse Events page with search + filters
 // Schema reference used for mock data
@@ -9,58 +10,28 @@ export default function EventList() {
 	const navigate = useNavigate();
 	const activeWallet = useActiveWallet();
 	const address = activeWallet?.getAccount()?.address;
+	const { events, user } = useUser();
 
 	useEffect(() => { if (!address) navigate("/"); }, [address, navigate]);
 
-	// Mock events (replace with Firestore query later)
-	const mockEvents = [
-		{
-			id: "EVT-CBH-2025",
-			hostAddress: "0x1234...ABCD",
-			title: "ChainBuilders Winter Hackathon",
-			description: "Collaborative build sprint focusing on tooling, infra and DX.",
-			eventLink: "https://example.com/cbh",
-			imageUrl: "https://placehold.co/400x200?text=Hackathon",
-			startDate: new Date(Date.now() + 3 * 86400000).toISOString(),
-			endDate: new Date(Date.now() + 5 * 86400000).toISOString(),
-			status: "upcoming",
-			ticketTiers: [
-				{ tierName: "General", price: 0, ticketCount: 200, ticketsSold: 48, hackRewards: 0 },
-				{ tierName: "Supporter", price: 5, ticketCount: 60, ticketsSold: 14, hackRewards: 20 },
-				{ tierName: "VIP", price: 10, ticketCount: 20, ticketsSold: 6, hackRewards: 50 },
-			],
-		},
-		{
-			id: "EVT-DEVCON-MEET",
-			hostAddress: "0x9999...BEEF",
-			title: "DevConnect Builders Meetup",
-			description: "Casual networking + lightning talks on protocol design.",
-			eventLink: "https://example.com/devmeet",
-			imageUrl: "https://placehold.co/400x200?text=Meetup",
-			startDate: new Date(Date.now() - 2 * 86400000).toISOString(),
-			endDate: new Date(Date.now() - 86400000).toISOString(),
-			status: "completed",
-			ticketTiers: [
-				{ tierName: "General", price: 0, ticketCount: 150, ticketsSold: 150, hackRewards: 0 },
-				{ tierName: "VIP", price: 8, ticketCount: 30, ticketsSold: 28, hackRewards: 25 },
-			],
-		},
-		{
-			id: "EVT-OSS-SPRINT",
-			hostAddress: "0x8888...FEED",
-			title: "Open Source Maintenance Sprint",
-			description: "Focus on issue triage, docs polish, dependency updates.",
-			eventLink: "https://example.com/oss-sprint",
-			imageUrl: "https://placehold.co/400x200?text=Sprint",
-			startDate: new Date(Date.now() - 86400000).toISOString(),
-			endDate: new Date(Date.now() + 2 * 86400000).toISOString(),
-			status: "ongoing",
-			ticketTiers: [
-				{ tierName: "General", price: 0, ticketCount: 100, ticketsSold: 73, hackRewards: 0 },
-				{ tierName: "Supporter", price: 4, ticketCount: 40, ticketsSold: 22, hackRewards: 15 },
-			],
-		},
-	];
+	// const mockEvents = [
+	// 	{
+	// 		id: "EVT-CBH-2025",
+	// 		hostAddress: "0x1234...ABCD",
+	// 		title: "ChainBuilders Winter Hackathon",
+	// 		description: "Collaborative build sprint focusing on tooling, infra and DX.",
+	// 		eventLink: "https://example.com/cbh",
+	// 		imageUrl: "https://placehold.co/400x200?text=Hackathon",
+	// 		startDate: new Date(Date.now() + 3 * 86400000).toISOString(),
+	// 		endDate: new Date(Date.now() + 5 * 86400000).toISOString(),
+	// 		status: "upcoming",
+	// 		ticketTiers: [
+	// 			{ tierName: "General", price: 0, ticketCount: 200, ticketsSold: 48, hackRewards: 0 },
+	// 			{ tierName: "Supporter", price: 5, ticketCount: 60, ticketsSold: 14, hackRewards: 20 },
+	// 			{ tierName: "VIP", price: 10, ticketCount: 20, ticketsSold: 6, hackRewards: 50 },
+	// 		],
+	// 	}
+	// ]
 
 	// Filters state
 	const [search, setSearch] = useState("");
@@ -69,19 +40,21 @@ export default function EventList() {
 	const [maxPrice, setMaxPrice] = useState('');
 
 	const filteredEvents = useMemo(() => {
-		return mockEvents.filter(ev => {
+		return events.filter(ev => {
 			const term = search.toLowerCase();
-			const matchesSearch = !term || ev.title.toLowerCase().includes(term) || ev.description.toLowerCase().includes(term);
+			const matchesSearch = !term || (ev.title?.toLowerCase().includes(term) || ev.description?.toLowerCase().includes(term));
 			const matchesStatus = statusFilter === 'all' || ev.status === statusFilter;
 			// Price filter: match if ANY tier falls inside range
-			const anyTierWithin = ev.ticketTiers.some(tier => {
-				const minOK = minPrice === '' || tier.price >= Number(minPrice);
-				const maxOK = maxPrice === '' || tier.price <= Number(maxPrice);
-				return minOK && maxOK;
-			});
+			const anyTierWithin = Array.isArray(ev.ticketTiers) && ev.ticketTiers.length > 0
+				? ev.ticketTiers.some(tier => {
+					const minOK = minPrice === '' || tier.price >= Number(minPrice);
+					const maxOK = maxPrice === '' || tier.price <= Number(maxPrice);
+					return minOK && maxOK;
+				})
+				: true; // If no tiers, include by default
 			return matchesSearch && matchesStatus && anyTierWithin;
 		});
-	}, [search, statusFilter, minPrice, maxPrice, mockEvents]);
+	}, [search, statusFilter, minPrice, maxPrice, events]);
 
 	const short = (addr) => (addr ? `${addr.slice(0,6)}...${addr.slice(-4)}` : "");
 	const fmt = (iso) => { try { return new Date(iso).toLocaleDateString(); } catch { return iso; } };
@@ -176,13 +149,15 @@ export default function EventList() {
 								className="h-9 px-4 rounded-full border border-white/10 text-white/80 hover:bg-white/10 text-sm"
 							>Reset</button>
 						</div>
-						<div className="text-xs text-gray-400">Showing {filteredEvents.length} of {mockEvents.length} events</div>
+						<div className="text-xs text-gray-400">Showing {filteredEvents.length} of {events.length} events</div>
 					</div>
 
 					{/* Events grid */}
 					<div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 						{filteredEvents.map(ev => {
-							const cheapest = ev.ticketTiers.reduce((min, t) => t.price < min ? t.price : min, ev.ticketTiers[0]?.price || 0);
+							const cheapest = Array.isArray(ev.ticketTiers) && ev.ticketTiers.length > 0
+								? ev.ticketTiers.reduce((min, t) => t.price < min ? t.price : min, ev.ticketTiers[0]?.price || 0)
+								: 0;
 							return (
 								<div key={ev.id} className="rounded-xl bg-white/0 border border-white/5 p-4 hover:bg-white/5 transition flex flex-col">
 									<div className="flex-1">
@@ -192,7 +167,7 @@ export default function EventList() {
 										<div className="text-xs text-gray-400 mt-1 line-clamp-3">{ev.description}</div>
 										<div className="text-xs text-gray-300/60 mt-2">Cheapest: {cheapest === 0 ? 'Free' : `${cheapest} $`}</div>
 										<div className="mt-2 flex flex-wrap gap-1">
-											{ev.ticketTiers.slice(0,3).map(t => (
+											{Array.isArray(ev.ticketTiers) && ev.ticketTiers.length > 0 && ev.ticketTiers.slice(0,3).map(t => (
 												<span key={t.tierName} className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/70">
 													{t.tierName}: {t.price === 0 ? 'Free' : `${t.price}$`}
 												</span>
