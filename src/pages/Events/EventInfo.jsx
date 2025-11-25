@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useActiveWallet } from "thirdweb/react";
 import { btnPrimary } from "../../styles/reusables";
 import { useUser } from "../../context/UserContext";
@@ -9,63 +9,13 @@ export default function EventInfo() {
 	const navigate = useNavigate();
 	const activeWallet = useActiveWallet();
 	const address = activeWallet?.getAccount()?.address;
-	const [searchParams] = useSearchParams();
 	const { events } = useUser();
 	const { id: eventId } = useParams();
 	
 
 	useEffect(() => { if (!address) navigate('/'); }, [address, navigate]);
 
-	// Same mock list as EventList (could centralize later)
-	// const mockEvents = [
-	// 	{
-	// 		id: "EVT-CBH-2025",
-	// 		hostAddress: "0x1234...ABCD",
-	// 		title: "ChainBuilders Winter Hackathon",
-	// 		description: "Collaborative build sprint focusing on tooling, infra and DX.",
-	// 		eventLink: "https://example.com/cbh",
-	// 		imageUrl: "https://placehold.co/800x360?text=Hackathon",
-	// 		startDate: new Date(Date.now() + 3 * 86400000).toISOString(),
-	// 		endDate: new Date(Date.now() + 5 * 86400000).toISOString(),
-	// 		status: "upcoming",
-	// 		ticketTiers: [
-	// 			{ tierName: "General", price: 0, ticketCount: 200, ticketsSold: 48, hackRewards: 0 },
-	// 			{ tierName: "Supporter", price: 5, ticketCount: 60, ticketsSold: 14, hackRewards: 20 },
-	// 			{ tierName: "VIP", price: 10, ticketCount: 20, ticketsSold: 6, hackRewards: 50 },
-	// 		],
-	// 	},
-	// 	{
-	// 		id: "EVT-DEVCON-MEET",
-	// 		hostAddress: "0x9999...BEEF",
-	// 		title: "DevConnect Builders Meetup",
-	// 		description: "Casual networking + lightning talks on protocol design.",
-	// 		eventLink: "https://example.com/devmeet",
-	// 		imageUrl: "https://placehold.co/800x360?text=Meetup",
-	// 		startDate: new Date(Date.now() - 2 * 86400000).toISOString(),
-	// 		endDate: new Date(Date.now() - 86400000).toISOString(),
-	// 		status: "completed",
-	// 		ticketTiers: [
-	// 			{ tierName: "General", price: 0, ticketCount: 150, ticketsSold: 150, hackRewards: 0 },
-	// 			{ tierName: "VIP", price: 8, ticketCount: 30, ticketsSold: 28, hackRewards: 25 },
-	// 		],
-	// 	},
-	// 	{
-	// 		id: "EVT-OSS-SPRINT",
-	// 		hostAddress: "0x8888...FEED",
-	// 		title: "Open Source Maintenance Sprint",
-	// 		description: "Focus on issue triage, docs polish, dependency updates.",
-	// 		eventLink: "https://example.com/oss-sprint",
-	// 		imageUrl: "https://placehold.co/800x360?text=Sprint",
-	// 		startDate: new Date(Date.now() - 86400000).toISOString(),
-	// 		endDate: new Date(Date.now() + 2 * 86400000).toISOString(),
-	// 		status: "ongoing",
-	// 		ticketTiers: [
-	// 			{ tierName: "General", price: 0, ticketCount: 100, ticketsSold: 73, hackRewards: 0 },
-	// 			{ tierName: "Supporter", price: 4, ticketCount: 40, ticketsSold: 22, hackRewards: 15 },
-	// 		],
-	// 	},
-	// ];
-
+	
 	const [event, setEvent] = useState(null);
 	useEffect(() => {
 		const found = events.find(e => e.event_id === eventId);

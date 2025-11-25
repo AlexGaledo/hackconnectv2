@@ -10,6 +10,7 @@ import TicketInfo from './pages/TIckets/TicketInfo.jsx';
 import TicketList from './pages/TIckets/TicketList.jsx';
 import EventList from './pages/Events/EventList.jsx';
 import EventInfo from './pages/Events/EventInfo.jsx';
+import ErrorPage from './pages/Errorpage/Errorpage.jsx';
 import NavBar from './components/Navbar/Navbar.jsx';
 import Footer from './components/Footer/Footer.jsx';
 import { useEffect } from 'react';
@@ -145,6 +146,19 @@ function App() {
                 transition={{ duration: 0.3 }}
               >
                 <EventInfo />
+              </motion.div>
+            }
+          />
+          <Route
+            path="*"
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ErrorPage />
               </motion.div>
             }
           />

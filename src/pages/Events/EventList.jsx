@@ -158,14 +158,15 @@ export default function EventList() {
 							const cheapest = Array.isArray(ev.ticketTiers) && ev.ticketTiers.length > 0
 								? ev.ticketTiers.reduce((min, t) => t.price < min ? t.price : min, ev.ticketTiers[0]?.price || 0)
 								: 0;
+	                        const hasFree = Array.isArray(ev.ticketTiers) && ev.ticketTiers.some(t => t.price === 0);
 							return (
-								<div key={ev.id} className="rounded-xl bg-white/0 border border-white/5 p-4 hover:bg-white/5 transition flex flex-col">
+								<div key={ev.event_id || ev.id} className="rounded-xl bg-white/0 border border-white/5 p-4 hover:bg-white/5 transition flex flex-col">
 									<div className="flex-1">
-										<div className="text-white font-medium line-clamp-2">{ev.title}</div>
-										<div className="text-xs text-gray-300/70 mt-1">{fmt(ev.startDate)} – {fmt(ev.endDate)}</div>
+										<div className="text-white font-medium line-clamp-2">{ev.event_title}</div>
+										<div className="text-xs text-gray-300/70 mt-1">{fmt(ev.date_start)} – {fmt(ev.date_end)}</div>
 										<div className={`text-xs mt-1 font-medium capitalize ${ev.status === 'upcoming' ? 'text-green-300' : ev.status === 'ongoing' ? 'text-yellow-300' : ev.status === 'completed' ? 'text-gray-300' : 'text-red-300'}`}>{ev.status}</div>
 										<div className="text-xs text-gray-400 mt-1 line-clamp-3">{ev.description}</div>
-										<div className="text-xs text-gray-300/60 mt-2">Cheapest: {cheapest === 0 ? 'Free' : `${cheapest} $`}</div>
+										<div className="text-xs text-gray-300/60 mt-2">{hasFree ? 'Free' : `Cheapest: ${cheapest} $`}</div>
 										<div className="mt-2 flex flex-wrap gap-1">
 											{Array.isArray(ev.ticketTiers) && ev.ticketTiers.length > 0 && ev.ticketTiers.slice(0,3).map(t => (
 												<span key={t.tierName} className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/70">
@@ -176,7 +177,7 @@ export default function EventList() {
 									</div>
 									<button
 										className="mt-4 h-9 px-4 rounded-full border border-white/10 text-white/90 hover:bg-white/10 text-sm w-fit"
-										onClick={() => navigate(`/Event?id=${ev.id}`)}
+										onClick={() => navigate(`/Event/${ev.event_id || ev.id}`)}
 									>View more</button>
 								</div>
 							);

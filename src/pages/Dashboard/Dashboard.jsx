@@ -123,7 +123,7 @@ export default function Dashboard() {
 						<div className="text-xs text-gray-300/60 mt-2">{`+ ${user?.eventsParticipated || 0} this week`}</div>
 					</div>
 					<div className="rounded-2xl backdrop-blur-sm bg-white/[0.04] border border-white/10 p-6 hover:bg-white/[0.09] transition">
-						<div className="text-sm text-gray-300/70">Projects</div>
+						<div className="text-sm text-gray-300/70">Tokens</div>
 						<div className="text-4xl font-bold text-white mt-2">{user?.projects || 0}</div>
 						<div className="text-xs text-gray-300/60 mt-2">{`+ ${user?.projects || 0} this week`}</div>
 					</div>
