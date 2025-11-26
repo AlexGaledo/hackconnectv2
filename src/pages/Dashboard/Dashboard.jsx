@@ -143,7 +143,7 @@ export default function Dashboard() {
 							<button className="text-sm text-gray-300/80 hover:text-white" onClick={() => navigate("/Events")}>View all </button>
 						</div>
 						<div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-							{events.slice(0,2).map((e, i) => (e.host_address == address &&
+							{events.slice().map((e, i) => (e.host_address == address &&
 								<div key={i} className="rounded-xl bg-white/0 border border-white/5 p-4 hover:bg-white/5 transition">
 									<div className="flex items-center justify-between">
 										<div>

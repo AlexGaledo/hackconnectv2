@@ -41,9 +41,10 @@ export default function NavBar() {
       </div>
       <ul className="nav-links">
         <li><a onClick={() => navigate("/Dashboard")}>Dashboard</a></li>
+        <li><a onClick={() => navigate("/Events")}>Browse</a></li>
+        
         <li><a onClick={() => navigate("/Create")}>Create</a></li>
-        <li><a onClick={() => navigate("/Events")}>Events</a></li>
-        <li><a onClick={() => navigate("/Community")}>Community</a></li>
+        {/* <li><a onClick={() => navigate("/Community")}>Community</a></li> */}
         <li><a onClick={() => navigate("/Rewards")}>Rewards</a></li>
       </ul>
       <div className="connect-desktop" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

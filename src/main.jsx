@@ -17,7 +17,7 @@ export const client = createThirdwebClient({
 export const hackTokenContract = getContract({
   client,
   chain: defineChain(11155111),
-  address: "0x356dCdb71dE72943AF553F6442357e8A64fd1Af7",
+  address: "0x02ae1DeCC0A1e36F026adD5c1faA455116f22260",
 });
 
 

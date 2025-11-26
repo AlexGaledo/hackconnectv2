@@ -1,5 +1,6 @@
-import { createContext, useContext } from "react"
+import { createContext, useContext, useEffect } from "react"
 import { useState } from "react"
+import { connector } from "../api/axios";
 
 
 const UserContext = createContext(null);
@@ -8,6 +9,31 @@ export function UserProvider({children}){
     const [user, setUser] = useState(null);
     const [tickets, setTickets] = useState([]);
     const [events, setEvents] = useState([]);
+    const [userInfo, setUserInfo] = useState(null); 
+
+    useEffect(() => {
+        if(!user){
+            return; 
+        }
+        if(user.walletAddress && !userInfo){
+            addUserInfo();
+        }
+    }, [user]);
+
+    const addUserInfo = async() => {
+        try{
+            const response = await connector.post(`/users/getUserInfo`,{
+            walletAddress: user.walletAddress
+            });
+
+            if (response.status === 200) {
+                setUserInfo(response.data.userInfo);
+                console.log("User info data:", response.data);
+            }
+        } catch (error) {
+            console.error("Error fetching user info:", error);
+        }
+    }
 
     const addUser = (userData) => {
         if(!userData || Object.keys(userData).length === 0){

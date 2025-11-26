@@ -1,23 +1,33 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useActiveWallet } from "thirdweb/react";
+import { useActiveWallet, useReadContract, useWalletBalance } from "thirdweb/react";
 import { btnPrimary } from "../../styles/reusables";
+import { hackTokenContract } from "../../main";
+import { balanceOf } from "thirdweb/extensions/erc20";
 
 export default function Rewards() {
 	const navigate = useNavigate();
 	const activeWallet = useActiveWallet();
 	const address = activeWallet?.getAccount()?.address;
+	const { data: hackTokenBalance } = useReadContract(balanceOf,{
+		contract: hackTokenContract,
+		address: address,
+	});
+	const tokenBalance = hackTokenBalance ? Number(hackTokenBalance) / 10**18 : 0;
+	
+	
 
 	useEffect(() => {
 		if (!address) navigate("/");
+		console.log("Amount of $HACK in wallet:", tokenBalance);
 	}, [address, navigate]);
 
 	const short = (addr) => (addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "");
 
 	const claimables = [
-		{ title: "Event Participation", amount: 100, desc: "Joined ChainBuilders Hackathon" },
-		{ title: "Top 10 Project", amount: 300, desc: "DevConnect Showcase" },
-		{ title: "Community Helper", amount: 50, desc: "Answered 5 threads" },
+		{ title: "Event Participation", amount: 100, desc: "Participate in an event." },
+		// { title: "Top 10 Project", amount: 300, desc: "DevConnect Showcase" },
+		{ title: "KYC Completed", amount: 100, desc: "Completed KYC verification" },
 	];
 
 	const history = [
@@ -83,8 +93,10 @@ export default function Rewards() {
 				<div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
 					<div className="rounded-2xl backdrop-blur-sm bg-white/0 border border-white/5 p-6">
 						<div className="text-sm text-gray-300/70">$HACK Balance</div>
-						<div className="text-4xl font-bold text-white mt-2">840</div>
-						<div className="text-xs text-gray-300/60 mt-2">Wallet + Unlocked</div>
+						<div className="text-4xl font-bold text-white mt-2">
+							{hackTokenBalance ? tokenBalance.toFixed(2) : '0.00'}
+						</div>
+						<div className="text-xs text-gray-300/60 mt-2">Wallet Balance</div>
 					</div>
 					<div className="rounded-2xl backdrop-blur-sm bg-white/0 border border-white/5 p-6">
 						<div className="text-sm text-gray-300/70">Claimable Now</div>
