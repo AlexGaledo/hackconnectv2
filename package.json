@@ -15,9 +15,11 @@
     "axios": "^1.13.2",
     "firebase": "^12.6.0",
     "framer-motion": "^12.23.24",
+    "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.554.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-qr-reader-es6": "^2.2.1-2",
     "react-router-dom": "^7.9.5",
     "tailwindcss": "^4.1.17",
     "thirdweb": "^5.112.2"

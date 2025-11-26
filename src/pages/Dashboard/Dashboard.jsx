@@ -139,11 +139,11 @@ export default function Dashboard() {
 				<div className="container mx-auto grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
 					<div className="lg:col-span-2 rounded-2xl backdrop-blur-sm bg-white/0 border border-white/5 p-6">
 						<div className="flex items-center justify-between">
-							<h2 className="text-xl sm:text-2xl font-semibold text-white">Upcoming Events</h2>
-							<button className="text-sm text-gray-300/80 hover:text-white" onClick={() => navigate("/Events")}>View all upcoming events</button>
+							<h2 className="text-xl sm:text-2xl font-semibold text-white">Your Events</h2>
+							<button className="text-sm text-gray-300/80 hover:text-white" onClick={() => navigate("/Events")}>View all </button>
 						</div>
 						<div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-							{events.slice(0,2).map((e, i) => (
+							{events.slice(0,2).map((e, i) => (e.host_address == address &&
 								<div key={i} className="rounded-xl bg-white/0 border border-white/5 p-4 hover:bg-white/5 transition">
 									<div className="flex items-center justify-between">
 										<div>
@@ -152,7 +152,7 @@ export default function Dashboard() {
 										</div>
 										<button className="h-9 px-4 rounded-full border border-white/10 text-white/90 hover:bg-white/10 text-sm"
 										onClick={() => viewEventInfo(e.event_id)}
-										>View more</button>
+										>Manage</button>
 									</div>
 								</div>
 							))}
@@ -162,23 +162,23 @@ export default function Dashboard() {
 					<div className="rounded-2xl backdrop-blur-sm bg-white/0 border border-white/5 p-6">
 						<div className="flex items-center justify-between">
 							<h2 className="text-xl sm:text-2xl font-semibold text-white">Your Tickets</h2>
-							<button className="text-sm text-gray-300/80 hover:text-white" onClick={() => navigate("/Tickets")}>view all tickets</button>
+							<button className="text-sm text-gray-300/80 hover:text-white" onClick={() => navigate("/Tickets")}>view all</button>
 						</div>
 						<div className="mt-4 space-y-3">
-							{tickets.slice(0,2).map((t) => (
-								<div key={t.id || `${t.eventId}-${t.tierName}`} className="rounded-xl bg-white/0 border border-white/5 p-4 hover:bg-white/5 transition">
+							{tickets.slice(0,2).map((t, idx) => (t.walletAddress == address?(
+								<div key={`${t.eventId}-${t.tierName}-${idx}`} className="rounded-xl bg-white/0 border border-white/5 p-4 hover:bg-white/5 transition">
 									<div className="flex items-start justify-between">
 										<div>
-											<div className="text-white font-medium">{t.eventId}</div>
+											<div className="text-white font-medium">{t.eventTitle}</div>
 											<div className="text-xs text-gray-300/70 mt-1">{t.tierName}</div>
 											<div className="text-xs text-gray-400 mt-1">Status: {t.status}</div>
 										</div>
 										<div className="text-right">
 											<div className="text-white/90 text-sm">{t.priceBought === 0 ? 'Free' : `${t.priceBought} $`}</div>
-											<button className="mt-2 h-8 px-3 rounded-full border border-white/10 text-white/80 hover:bg-white/10 text-xs" onClick={() => navigate("/Ticket")}>View more</button>
+											<button className="mt-2 h-8 px-3 rounded-full border border-white/10 text-white/80 hover:bg-white/10 text-xs" onClick={() => navigate(`/Ticket?id=${t.ticketId}`)}>View more</button>
 										</div>
 									</div>
-								</div>
+								</div>):null
 							))}
 							{tickets.length === 0 && (
 								<div className="text-xs text-gray-400">No tickets yet. Join an event to get started.</div>

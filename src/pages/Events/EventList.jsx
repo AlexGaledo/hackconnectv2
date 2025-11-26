@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useActiveWallet } from "thirdweb/react";
 import { btnPrimary } from "../../styles/reusables";
 import { useUser } from "../../context/UserContext";
+import { connector } from "../../api/axios";
 
 // Browse Events page with search + filters
 // Schema reference used for mock data
@@ -11,27 +12,25 @@ export default function EventList() {
 	const activeWallet = useActiveWallet();
 	const address = activeWallet?.getAccount()?.address;
 	const { events, user } = useUser();
+	const { addEvents } = useUser();
 
-	useEffect(() => { if (!address) navigate("/"); }, [address, navigate]);
+	const retrieveEventOverview = async () => {
+		try {
+		const response = await connector.get(`/events/listEvents`);
+		console.log("Event overview data:", response.data.events);
 
-	// const mockEvents = [
-	// 	{
-	// 		id: "EVT-CBH-2025",
-	// 		hostAddress: "0x1234...ABCD",
-	// 		title: "ChainBuilders Winter Hackathon",
-	// 		description: "Collaborative build sprint focusing on tooling, infra and DX.",
-	// 		eventLink: "https://example.com/cbh",
-	// 		imageUrl: "https://placehold.co/400x200?text=Hackathon",
-	// 		startDate: new Date(Date.now() + 3 * 86400000).toISOString(),
-	// 		endDate: new Date(Date.now() + 5 * 86400000).toISOString(),
-	// 		status: "upcoming",
-	// 		ticketTiers: [
-	// 			{ tierName: "General", price: 0, ticketCount: 200, ticketsSold: 48, hackRewards: 0 },
-	// 			{ tierName: "Supporter", price: 5, ticketCount: 60, ticketsSold: 14, hackRewards: 20 },
-	// 			{ tierName: "VIP", price: 10, ticketCount: 20, ticketsSold: 6, hackRewards: 50 },
-	// 		],
-	// 	}
-	// ]
+		if (response.status === 200) {
+			addEvents(response.data.events);
+		}
+		} catch (error) {
+			console.error("Error fetching event overview data:", error);
+		}
+	}
+	
+
+	useEffect(() => { if (!address) navigate("/");}, [address, navigate]);
+	useEffect(() => { retrieveEventOverview(); }, []);
+
 
 	// Filters state
 	const [search, setSearch] = useState("");
@@ -42,7 +41,7 @@ export default function EventList() {
 	const filteredEvents = useMemo(() => {
 		return events.filter(ev => {
 			const term = search.toLowerCase();
-			const matchesSearch = !term || (ev.title?.toLowerCase().includes(term) || ev.description?.toLowerCase().includes(term));
+			const matchesSearch = !term || (ev.event_title?.toLowerCase().includes(term) || ev.description?.toLowerCase().includes(term));
 			const matchesStatus = statusFilter === 'all' || ev.status === statusFilter;
 			// Price filter: match if ANY tier falls inside range
 			const anyTierWithin = Array.isArray(ev.ticketTiers) && ev.ticketTiers.length > 0
@@ -90,10 +89,7 @@ export default function EventList() {
 							</h1>
 							<p className="text-gray-300/70 mt-2 text-sm sm:text-base">Connected as {address ? short(address) : 'wallet'}.</p>
 						</div>
-						<div className="flex gap-3">
-							<button className={btnPrimary} onClick={() => navigate('/Create')}>Create Event</button>
-							<button className={btnPrimary} onClick={() => navigate('/Dashboard')}>Back to Dashboard</button>
-						</div>
+						<div className="flex gap-4"><button className={btnPrimary} onClick={() => navigate('/Dashboard')}>Back to Dashboard</button></div>
 					</div>
 				</div>
 			</section>
@@ -150,6 +146,7 @@ export default function EventList() {
 							>Reset</button>
 						</div>
 						<div className="text-xs text-gray-400">Showing {filteredEvents.length} of {events.length} events</div>
+						
 					</div>
 
 					{/* Events grid */}
@@ -175,18 +172,23 @@ export default function EventList() {
 											))}
 										</div>
 									</div>
+									
 									<button
 										className="mt-4 h-9 px-4 rounded-full border border-white/10 text-white/90 hover:bg-white/10 text-sm w-fit"
 										onClick={() => navigate(`/Event/${ev.event_id || ev.id}`)}
 									>View more</button>
 								</div>
+								
 							);
-						})}
+						})}	
+
 						{filteredEvents.length === 0 && (
 							<div className="text-xs text-gray-400 col-span-full">No events match your filters.</div>
 						)}
 					</div>
+
 				</div>
+				
 			</section>
 		</div>
 	);

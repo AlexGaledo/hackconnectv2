@@ -2,24 +2,38 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useActiveWallet } from "thirdweb/react";
 import { btnPrimary } from "../../styles/reusables";
+import { useUser } from "../../context/UserContext";
+import { connector } from "../../api/axios";
 
 export default function TicketList() {
 	const navigate = useNavigate();
 	const activeWallet = useActiveWallet();
 	const address = activeWallet?.getAccount()?.address;
+	const { tickets, addTickets } = useUser();
 
 	useEffect(() => {
-		if (!address) navigate("/");
+		if (!address) {
+			navigate("/");
+			return;
+		}
+		const fetchTickets = async () => {
+			try {
+				const response = await connector.get(`/events/retrieveTickets/${address}`);
+				if(response.status === 200){
+					console.log("Tickets data:", response.data.tickets);
+					addTickets(response.data.tickets);
+				}
+			} catch (error) {
+				console.error("Error fetching tickets:", error);
+			}
+		};
+		fetchTickets();
 	}, [address, navigate]);
 
 	const short = (addr) => (addr ? `${addr.slice(0,6)}...${addr.slice(-4)}` : "");
 
 	// Mock tickets (would be fetched from Firestore filtering walletAddress)
-	const tickets = [
-		{ id: "CBH-1", eventTitle: "ChainBuilders Hackathon", date: "Dec 02", tierName: "General", priceBought: 0, status: "valid" },
-		{ id: "DCM-2", eventTitle: "DevConnect Meetup", date: "Dec 10", tierName: "VIP", priceBought: 10, status: "valid" },
-		{ id: "OSS-3", eventTitle: "OpenSource Sprint", date: "Jan 14", tierName: "Supporter", priceBought: 5, status: "used" },
-	];
+	
 
 	return (
 		<div className="relative min-h-screen flex flex-col">
@@ -68,20 +82,21 @@ export default function TicketList() {
 						<h2 className="text-xl sm:text-2xl font-semibold text-white">Your Tickets ({tickets.length})</h2>
 					</div>
 					<div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-						{tickets.map(t => (
-							<div key={t.id} className="rounded-xl bg-white/0 border border-white/5 p-4 hover:bg-white/5 transition flex flex-col justify-between">
-								<div>
-									<div className="text-white font-medium">{t.eventTitle}</div>
-									<div className="text-xs text-gray-300/70 mt-1">{t.date} • {t.tierName} Tier</div>
-									<div className="text-xs text-gray-400 mt-1">Status: {t.status}</div>
-									<div className="text-xs text-gray-400 mt-1">Price: {t.priceBought === 0 ? 'Free' : `${t.priceBought} $`}</div>
-								</div>
-								<button
-									className="mt-4 h-9 px-4 rounded-full border border-white/10 text-white/90 hover:bg-white/10 text-sm w-fit"
-									onClick={() => navigate(`/Ticket?id=${t.id}`)}
-								>View more</button>
+					{tickets.map(t => (t.walletAddress === address) && (
+						<div key={t.ticketId} className="rounded-xl bg-white/0 border border-white/5 p-4 hover:bg-white/5 transition flex flex-col justify-between">
+							<div>
+								<div className="text-white font-medium">{t.eventTitle || 'Unknown Event'}</div>
+								<div className="text-xs text-gray-300/70 mt-1">{t.tierName} Tier</div>
+								<div className="text-xs text-gray-400 mt-1">Status: {t.status || 'active'}</div>
+								<div className="text-xs text-gray-400 mt-1">Price: {t.priceBought === 0 ? 'Free' : `${t.priceBought} tokens`}</div>
+								<div className="text-xs text-gray-400 mt-1">ID: {t.ticketId.slice(0, 8)}...</div>
 							</div>
-						))}
+							<button
+								className="mt-4 h-9 px-4 rounded-full border border-white/10 text-white/90 hover:bg-white/10 text-sm w-fit"
+								onClick={() => navigate(`/Ticket?id=${t.ticketId}`)}
+							>View QR Code</button>
+						</div>
+					))}
 						{tickets.length === 0 && (
 							<div className="text-xs text-gray-400 col-span-full">No tickets yet.</div>
 						)}

@@ -21,11 +21,10 @@ export default function CreateProject() {
 	const [startDate, setStartDate] = useState("");
 	const [endDate, setEndDate] = useState("");
 	const [eventLink, setEventLink] = useState("");
-	const [imageUrl, setImageUrl] = useState("");
+	const [imageFile, setImageFile] = useState(null);
+	const [imagePreview, setImagePreview] = useState("");
 	const [status, setStatus] = useState("upcoming");
-	const [ticketTiers, setTicketTiers] = useState([
-		{ tierName: "General", price: "0", ticketCount: "100", hackRewards: "0" },
-	]);
+	const [ticketTiers, setTicketTiers] = useState([]);
 	const [submitting, setSubmitting] = useState(false);
 	const [touched, setTouched] = useState(false);
 	useEffect(() => {
@@ -38,7 +37,34 @@ export default function CreateProject() {
 
 	const valid = title.trim() && description.trim() && startDate;
 
+	const handleImageChange = (e) => {
+		const file = e.target.files?.[0];
+		if (file) {
+			if (file.size > 5 * 1024 * 1024) { // 5MB limit
+				showMessage({
+					title: 'File Too Large',
+					message: 'Image must be less than 5MB',
+					type: 'warning',
+					autoCloseMs: 3000,
+				});
+				return;
+			}
+			setImageFile(file);
+			const reader = new FileReader();
+			reader.onloadend = () => setImagePreview(reader.result);
+			reader.readAsDataURL(file);
+		}
+	};
+
+	const clearImage = () => {
+		setImageFile(null);
+		setImagePreview("");
+	};
+
+
+
 	const handleSubmit = async (e) => {
+		e.preventDefault();
 		setTouched(true);
 		if (!valid || submitting || burning) return;
 		setSubmitting(true);
@@ -51,24 +77,38 @@ export default function CreateProject() {
 						ticketCount: Number(t.ticketCount) || 0,
 						ticketsSold: 0,
 				}));
+			
+			// Build FormData for the backend
+			const formData = new FormData();
+			formData.append('host_address', address);
+			formData.append('title', title.trim());
+			formData.append('description', description.trim());
+			if (eventLink.trim()) formData.append('event_link', eventLink.trim());
+			formData.append('date_start', startDate);
+			if (endDate) formData.append('date_end', endDate);
+			formData.append('status', status);
+			formData.append('ticket_tiers', JSON.stringify(tierPayload));
+			if (imageFile) formData.append('image', imageFile);
 
-			const payload = {
+			console.log("Create event FormData fields:", {
 				host_address: address,
-				title: title.trim(), // adjust to event_title if backend expects
-				description: description.trim(), // adjust to event_description if needed
+				title: title.trim(),
+				description: description.trim(),
 				event_link: eventLink.trim() || null,
-				image_url: imageUrl.trim() || null,
-				date_start: startDate, // convert to ISO if backend requires full timestamp
+				date_start: startDate,
 				date_end: endDate || null,
 				status,
 				ticket_tiers: tierPayload,
-			};
-			
-			// Burn 20 tokens (scale to 18 decimals). Adjust as needed.
+				image: imageFile?.name || null
+			});
+
+			// Burn tokens (scale to 18 decimals)
 			const tokensToBurn = 0n;
 			const amount = tokensToBurn * 10n ** 18n;
 
-			const response = await connector.post(`/events/create`, payload);
+			const response = await connector.post(`/events/create`, formData, {
+				headers: { 'Content-Type': 'multipart/form-data' }
+			});
 			console.log("Create event response:", response.data);
 			if (response.status >= 200 && response.status < 300) {
 				const transaction = prepareContractCall({
@@ -95,12 +135,33 @@ export default function CreateProject() {
 							autoCloseMs: 3000,
 						});
 						navigate("/Events");
-					},
+					}
 				});
 			}
 		} catch (err) {
 			console.error('Create event failed:', err);
-			console.error('Error response data:', err?.response?.data);
+			console.error('Error response:', err?.response);
+			console.error('Error message:', err?.message);
+			
+			// Extract error message from FastAPI validation errors
+			let errorMsg = 'Unable to create event. Check console for details.';
+			if (err?.response?.data?.detail) {
+				if (Array.isArray(err.response.data.detail)) {
+					// FastAPI validation errors
+					errorMsg = err.response.data.detail.map(e => `${e.loc.join('.')}: ${e.msg}`).join('; ');
+				} else if (typeof err.response.data.detail === 'string') {
+					errorMsg = err.response.data.detail;
+				}
+			} else if (err?.message) {
+				errorMsg = err.message;
+			}
+			
+			showMessage({
+				title: 'Event Creation Failed',
+				message: errorMsg,
+				type: 'error',
+				autoCloseMs: 5000,
+			});
 		} finally {
 			setSubmitting(false);
 		}
@@ -143,13 +204,13 @@ export default function CreateProject() {
 		<section className="relative z-10 pt-10 sm:pt-16 pb-6 sm:pb-10 px-4 sm:px-6">
 			<div className="container mx-auto max-w-4xl">
 				<div className="mb-8">
-					<button
-						type="button"
-						onClick={() => navigate("/Dashboard")}
-						className={`${btnPrimary} z-40 mx-0 mr-0 -top-6 right-6 sm:right-8 mb-4`}
-					>
-						Back to Dashboard
-					</button>
+						<button
+							type="button"
+							onClick={() => navigate("/Dashboard")}
+							className={`${btnPrimary} z-40 mx-0 mr-0 -top-6 right-6 sm:right-8 mb-4`}
+						>
+							Back to Dashboard
+						</button>
 					<h1
 						className="text-4xl sm:text-5xl md:text-5xl font-semibold bg-clip-text text-transparent"
 						style={{
@@ -245,14 +306,34 @@ export default function CreateProject() {
 							/>
 						</div>
 						<div className="space-y-2">
-							<label className="block text-sm font-medium text-gray-300/80">Image URL (optional)</label>
-							<input
-								type="url"
-								placeholder="https://images.host/banner.png"
-								value={imageUrl}
-								onChange={(e) => setImageUrl(e.target.value)}
-								className="w-full rounded-xl bg-white/0 border border-white/5 focus:border-white/30 focus:outline-none px-4 py-3 text-white placeholder-gray-500 text-sm"
-							/>
+							<label className="block text-sm font-medium text-gray-300/80">Event Image (optional)</label>
+							<div className="relative">
+								<input
+									type="file"
+									accept="image/*"
+									onChange={handleImageChange}
+									className="hidden"
+									id="image-upload"
+								/>
+								<label
+									htmlFor="image-upload"
+									className="flex items-center justify-center w-full rounded-xl bg-white/0 border border-white/5 hover:border-white/20 focus:border-white/30 px-4 py-3 text-white/70 hover:text-white text-sm cursor-pointer transition"
+								>
+									{imageFile ? imageFile.name : '📁 Choose image (max 5MB)'}
+								</label>
+							</div>
+							{imagePreview && (
+								<div className="relative mt-2 rounded-lg overflow-hidden border border-white/10">
+									<img src={imagePreview} alt="Preview" className="w-full h-24 object-cover" />
+									<button
+										type="button"
+										onClick={clearImage}
+										className="absolute top-1 right-1 bg-black/60 hover:bg-black/80 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+									>
+										✕
+									</button>
+								</div>
+							)}
 						</div>
 					</div>
 
@@ -269,7 +350,7 @@ export default function CreateProject() {
 
 					<div className="space-y-4">
 						<div className="flex items-center justify-between">
-							<h3 className="text-white/90 font-medium text-sm">Ticket Tiers (optional)</h3>
+							<h3 className="text-white/90 font-medium text-sm">Ticket Tiers</h3>
 							<button type="button" onClick={addTier} className="h-9 px-4 rounded-full border border-white/10 text-white/80 hover:bg-white/10 text-xs">Add Tier</button>
 						</div>
 						<div className="space-y-3">

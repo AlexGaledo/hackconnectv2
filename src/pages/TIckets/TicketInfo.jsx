@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useActiveWallet } from "thirdweb/react";
 import { btnPrimary } from "../../styles/reusables";
+import { useUser } from "../../context/UserContext";
+import { connector } from "../../api/axios";
+
 
 // This page displays ticket info matching the Tickets schema
 // Tickets (Collection)
@@ -22,28 +25,51 @@ export default function TicketInfo() {
 	const ticketId = searchParams.get("id") || "CBH-1"; // fallback mock id
 
 	// Mock lookup (replace with Firestore fetch later)
-	const [ticket, setTicket] = useState(null);
+	const [activeTicket, setActiveTicket] = useState(null);
+	const {tickets, addTickets} = useUser();
+
+	const handleDownloadQr = async (ticket) => {
+		if (!ticket.qrCodeUrl) {
+			alert('QR code not available');
+			return;
+		}
+		try {
+			const response = await fetch(ticket.qrCodeUrl);
+			const blob = await response.blob();
+			const blobUrl = window.URL.createObjectURL(blob);
+
+			const link = document.createElement("a");
+			link.href = blobUrl;
+			link.download = `ticket-${ticket.ticketId}.png`;
+			link.click();
+
+			window.URL.revokeObjectURL(blobUrl);
+		} catch (error) {
+			console.error('Download failed:', error);
+			alert('Failed to download QR code');
+		}
+	};
+
 
 	useEffect(() => {
 		if (!address) navigate("/");
 	}, [address, navigate]);
 
 	useEffect(() => {
-		// Simulate fetch
-		const mock = {
-			id: ticketId,
-			walletAddress: address || "0xDEMO000000000000000000000000000000123456",
-			eventId: "event_cb_winter_2025",
-			tierName: "General",
-			priceBought: 0,
-			purchasedAt: new Date(Date.now() - 86400000).toISOString(),
-			status: "valid",
-			ticketQRCode: `QR-${ticketId}-${Math.random().toString(16).slice(2, 8)}`,
-			eventTitle: "ChainBuilders Winter Hackathon",
-			eventDate: "Dec 02",
-			location: "Online",
+		if (!ticketId || !address) return;
+		const fetchTicket = async () => {
+			try {
+				const response = await connector.get(`/events/retrieveTickets/${address}`);
+				if(response.status === 200){
+					const ticket = response.data.tickets.find(t => t.ticketId === ticketId);
+					console.log(`found ticket for id ${ticketId}:`, ticket);
+					setActiveTicket(ticket);
+				}
+			} catch (error) {
+				console.error("Error fetching ticket:", error);
+			}
 		};
-		setTicket(mock);
+		fetchTicket();
 	}, [ticketId, address]);
 
 	const short = (addr) => (addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "");
@@ -86,63 +112,68 @@ export default function TicketInfo() {
 						Ticket Details
 					</h1>
 					<p className="text-gray-300/80 mt-2 text-sm sm:text-base max-w-md">Review your ticket information and status.</p>
-					{ticket && (
-						<p className="text-xs text-gray-400 mt-2">Ticket ID: {ticket.id}</p>
+					{activeTicket && (
+						<p className="text-xs text-gray-400 mt-2">Ticket ID: {activeTicket.ticketId}</p>
 					)}
 				</div>
 			</section>
 
 			<section className="relative z-10 px-4 sm:px-6 flex-1 pb-6">
 				<div className="container mx-auto max-w-3xl space-y-6 h-full">
-					{!ticket ? (
-						<div className="rounded-2xl backdrop-blur-sm bg-white/0 border border-white/5 p-6 text-center text-gray-400">Loading ticket...</div>
+					{!activeTicket ? (
+						<div className="rounded-2xl backdrop-blur-sm bg-white/0 border border-white/5 p-6 text-center text-gray-400">Loading Ticket...</div>
 					) : (
 						<div className="rounded-2xl backdrop-blur-sm bg-white/0 border border-white/5 p-6">
 							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 								<div className="space-y-3">
 									<div>
-										<div className="text-xs text-gray-300/60">Event</div>
-										<div className="text-white font-medium">{ticket.eventTitle}</div>
-										<div className="text-xs text-gray-300/60 mt-1">{ticket.eventDate} • {ticket.location}</div>
+										<div className="text-xs text-gray-300/60">Event ID</div>
+										<div className="text-white font-medium break-all">{activeTicket.eventId}</div>
 									</div>
 									<div>
 										<div className="text-xs text-gray-300/60">Tier</div>
-										<div className="text-white/90">{ticket.tierName}</div>
+										<div className="text-white/90">{activeTicket.tierName}</div>
 									</div>
 									<div>
 										<div className="text-xs text-gray-300/60">Price Bought</div>
-										<div className="text-white/90">{ticket.priceBought === 0 ? 'Free' : `${ticket.priceBought} $`}</div>
+										<div className="text-white/90">{activeTicket.priceBought === 0 ? 'Free' : `${activeTicket.priceBought} tokens`}</div>
 									</div>
 									<div>
 										<div className="text-xs text-gray-300/60">Purchased At</div>
-										<div className="text-white/90">{formatDate(ticket.purchasedAt)}</div>
+										<div className="text-white/90">{formatDate(activeTicket.purchasedAt)}</div>
 									</div>
 								</div>
 								<div className="space-y-3">
 									<div>
 										<div className="text-xs text-gray-300/60">Wallet</div>
-										<div className="text-white/90">{short(ticket.walletAddress)}</div>
+										<div className="text-white/90">{short(activeTicket.walletAddress)}</div>
 									</div>
 									<div>
-										<div className="text-xs text-gray-300/60">Event ID</div>
-										<div className="text-white/90 break-all">{ticket.eventId}</div>
+										<div className="text-xs text-gray-300/60">Ticket ID</div>
+										<div className="text-white/90 break-all text-xs">{activeTicket.ticketId}</div>
 									</div>
 									<div>
 										<div className="text-xs text-gray-300/60">Status</div>
-										<div className={`text-sm font-medium ${ticket.status === 'valid' ? 'text-green-300' : ticket.status === 'used' ? 'text-yellow-300' : 'text-red-300'}`}>{ticket.status}</div>
+										<div className={`text-sm font-medium ${activeTicket.status === 'valid' ? 'text-green-300' : activeTicket.status === 'used' ? 'text-yellow-300' : 'text-green-300'}`}>{activeTicket.status || 'active'}</div>
 									</div>
 									<div>
-										<div className="text-xs text-gray-300/60">QR Code Ref</div>
-										<div className="text-white/90">{ticket.ticketQRCode}</div>
+										<div className="text-xs text-gray-300/60">Signature</div>
+										<div className="text-white/90 break-all text-xs">{activeTicket.signature?.slice(0, 16)}...</div>
 									</div>
 								</div>
 							</div>
+							{activeTicket.qrCodeUrl && (
+								<div className="mt-6">
+									<div className="text-xs text-gray-300/60 mb-2">QR Code</div>
+									<div className="bg-white p-4 rounded-lg inline-block">
+										<img src={activeTicket.qrCodeUrl} alt="Ticket QR Code" className="w-48 h-48" />
+									</div>
+								</div>
+							)}
 							<div className="mt-6 flex flex-wrap gap-3">
-								<button className="h-9 px-4 rounded-full border border-white/10 text-white/90 hover:bg-white/10 text-sm" onClick={() => alert('Download QR (demo)')}>Download QR</button>
-								<button className="h-9 px-4 rounded-full border border-white/10 text-white/90 hover:bg-white/10 text-sm" onClick={() => alert('Regenerate QR (demo)')}>Regenerate QR</button>
-								<button className="h-9 px-4 rounded-full border border-white/10 text-white/90 hover:bg-white/10 text-sm" onClick={() => alert('Mark Used (demo)')}>Mark Used</button>
+								<button className="h-9 px-4 rounded-full border border-white/10 text-white/90 hover:bg-white/10 text-sm" onClick={() => handleDownloadQr(activeTicket)}>Download QR</button>
 							</div>
-							<p className="text-xs text-gray-400 mt-4">Actions are placeholders; integrate Firestore & verification flow later.</p>
+							<p className="text-xs text-gray-400 mt-4">Show this QR code at the event for verification.</p>
 						</div>
 					)}
 				</div>

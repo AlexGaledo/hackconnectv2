@@ -3,6 +3,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useActiveWallet } from "thirdweb/react";
 import { btnPrimary } from "../../styles/reusables";
 import { useUser } from "../../context/UserContext";
+import { connector } from "../../api/axios";
+import { prepareContractCall } from "thirdweb";
+import { useSendTransaction } from "thirdweb/react";
+import { hackTokenContract } from "../../main";
+import { useMessageModal } from "../../context/MessageModal";
+
 
 // Shows tiers with progress and basic actions placeholder
 export default function EventInfo() {
@@ -11,12 +17,77 @@ export default function EventInfo() {
 	const address = activeWallet?.getAccount()?.address;
 	const { events } = useUser();
 	const { id: eventId } = useParams();
-	
-
-	useEffect(() => { if (!address) navigate('/'); }, [address, navigate]);
-
-	
+	const { showMessage } = useMessageModal();
 	const [event, setEvent] = useState(null);
+	
+	// Proper thirdweb transaction hook
+	const { mutate: sendTx, isPending: txPending } = useSendTransaction();
+	
+
+	const handleBuyTier = async (tier) => {
+		if (!address) {
+			showMessage({ title: 'Wallet Required', message: 'Connect your wallet before joining.', type: 'warning', autoCloseMs: 2500 });
+			return;
+		}
+		if (txPending) return; // prevent double clicks
+		try {
+			// Backend expects { priceBought, tierName }
+			const payload = {
+				priceBought: tier.price, // numeric token or currency value
+				tierName: tier.tierName,
+				eventTitle: event.event_title,
+			};
+			const response = await connector.post(`events/joinEvent/${eventId}/${address}`, payload);
+
+			// Burn 5 tokens (example). Adjust logic based on tier.price if desired.
+			const tokensToBurn = 0n;
+			const amount = tokensToBurn * 10n ** 18n;
+
+			if (response.status === 200) {
+				const transaction = prepareContractCall({
+					contract: hackTokenContract,
+					method: "function burn(uint256 value)",
+					params: [amount],
+				});
+				sendTx(transaction, {
+					onSuccess: () => {
+						showMessage({
+							title: 'Success',
+							message: `Joined ${tier.tierName}. Burned ${tokensToBurn.toString()} HACK.`,
+							type: 'success',
+							autoCloseMs: 3000,
+						});
+						navigate('/Tickets');
+					},
+					onError: (error) => {
+						console.error('Burn transaction error:', error);
+						showMessage({
+							title: 'Event Joined',
+							message: `Joined ${tier.tierName}. Burn failed — retry later.`,
+							type: 'warning',
+							autoCloseMs: 3000,
+						});
+						navigate('/Events');
+					}
+				});
+			} else {
+				showMessage({
+					title: 'Join Failed',
+					message: 'Failed to join: ' + (response.data?.message || 'Unknown error'),
+					type: 'error',
+					autoCloseMs: 3000,
+				});
+			}
+		} catch (err) {
+			console.error('Join event error:', err);
+			showMessage({ title: 'Error', message: 'Unexpected error joining event.', type: 'error', autoCloseMs: 3000 });
+		}
+	};
+
+
+	useEffect(() => { if (!address) navigate('/'); }, [address, navigate]);	
+
+	
 	useEffect(() => {
 		const found = events.find(e => e.event_id === eventId);
 		console.log(`Found event for details for ${eventId}:`, found);
@@ -81,7 +152,7 @@ export default function EventInfo() {
 									</div>
 									<div className="md:w-64 w-full">
 										<div className="aspect-video rounded-lg overflow-hidden border border-white/10 bg-white/5 flex items-center justify-center text-xs text-gray-400">
-											Image Placeholder
+											<img src={event.image_url} alt={event.event_title} />
 										</div>
 									</div>
 								</div>
@@ -104,17 +175,31 @@ export default function EventInfo() {
 														<span>{tier.ticketsSold} sold</span>
 														<span>{tier.ticketCount - tier.ticketsSold} left</span>
 													</div>
+													{event.host_address != address && 
 													<button
 														className="mt-3 h-8 px-3 rounded-full border border-white/10 text-white/80 hover:bg-white/10 text-xs"
-														onClick={() => alert(`Buy ${tier.tierName} (demo)`)}
-													>Buy Tier</button>
+														onClick={() => handleBuyTier(tier)} 
+													>Get Ticket</button>}
+
+													
 												</div>
 											);
 										})}
 									</div>
 								</div>
+								{event.host_address === address &&
+									<div className="flex flex-col">
+									<button
+										className="mt-3 h-8 px-3 rounded-full border border-white/10 text-white/80 hover:bg-white/10 text-xs"
+										onClick={() => 	navigate(`/Scanner/${event.event_id}`)} 
+									>Scan Attendees</button>
+									<button
+										className="mt-3 h-8 px-3 rounded-full border border-white/10 text-white/80 hover:bg-white/10 text-xs"
+										onClick={() => handleBuyTier(tier)} 
+									>Update Description</button>
+									</div>}
 
-								<p className="text-[11px] text-gray-500">Actions are placeholders; integrate Firestore & purchase flow later.</p>
+								<p className="text-[11px] text-gray-500">Reminder: You cannot purchase tickets in your own event.</p>
 							</div>
 						</div>
 					)}

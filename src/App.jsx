@@ -6,6 +6,8 @@ import Dashboard from './pages/Dashboard/Dashboard.jsx';
 import CreateProject from './pages/Create/CreateProject.jsx';
 import Community from './pages/Community/Community.jsx';
 import Rewards from './pages/Rewards/Rewards.jsx';
+import Profile from './pages/Profile/Profile.jsx';
+import EventScanner from './pages/Scanner/EventScanner.jsx';
 import TicketInfo from './pages/TIckets/TicketInfo.jsx';
 import TicketList from './pages/TIckets/TicketList.jsx';
 import EventList from './pages/Events/EventList.jsx';
@@ -98,6 +100,19 @@ function App() {
             }
           />
           <Route
+            path="/Profile"
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Profile />
+              </motion.div>
+            }
+          />
+          <Route
             path="/Ticket"
             element={
               <motion.div
@@ -146,6 +161,19 @@ function App() {
                 transition={{ duration: 0.3 }}
               >
                 <EventInfo />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/Scanner/:id"
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <EventScanner />
               </motion.div>
             }
           />
