@@ -65,7 +65,7 @@ export default function Dashboard() {
 	const short = (addr) => (addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "");
 
 	const viewEventInfo = (eventId) => {
-		navigate(`/Event/${eventId}`);
+		navigate(`/Event?id=${eventId}`);
 	}
 	
 	
@@ -174,7 +174,7 @@ export default function Dashboard() {
 											<div className="text-xs text-gray-400 mt-1">Status: {t.status}</div>
 										</div>
 										<div className="text-right">
-											<div className="text-white/90 text-sm">{t.priceBought === 0 ? 'Free' : `${t.priceBought} $`}</div>
+											<div className="text-white/90 text-sm">{t.priceBought === 0 ? 'Free' : `${t.priceBought} $HACK`}</div>
 											<button className="mt-2 h-8 px-3 rounded-full border border-white/10 text-white/80 hover:bg-white/10 text-xs" onClick={() => navigate(`/Ticket?id=${t.ticketId}`)}>View more</button>
 										</div>
 									</div>

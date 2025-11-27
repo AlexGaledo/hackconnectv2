@@ -4,6 +4,8 @@ import { useActiveWallet, useReadContract, useWalletBalance } from "thirdweb/rea
 import { btnPrimary } from "../../styles/reusables";
 import { hackTokenContract } from "../../main";
 import { balanceOf } from "thirdweb/extensions/erc20";
+import { useState } from "react";
+import { connector } from "../../api/axios";
 
 export default function Rewards() {
 	const navigate = useNavigate();
@@ -13,22 +15,34 @@ export default function Rewards() {
 		contract: hackTokenContract,
 		address: address,
 	});
+	const [claimable, setClaimable] = useState(0);
+	const [tasks, setTasks] = useState([]);
+	const [claimables, setClaimables] = useState(tasks.filter(t => t.claimed === false));
+
 	const tokenBalance = hackTokenBalance ? Number(hackTokenBalance) / 10**18 : 0;
 	
 	
 
 	useEffect(() => {
+		retrieveTasks();
 		if (!address) navigate("/");
 		console.log("Amount of $HACK in wallet:", tokenBalance);
 	}, [address, navigate]);
 
 	const short = (addr) => (addr ? `${addr.slice(0, 6)}...${addr.slice(-4)}` : "");
 
-	const claimables = [
-		{ title: "Event Participation", amount: 100, desc: "Participate in an event." },
-		// { title: "Top 10 Project", amount: 300, desc: "DevConnect Showcase" },
-		{ title: "KYC Completed", amount: 100, desc: "Completed KYC verification" },
-	];
+	const retrieveTasks = async() => {
+		const response = await connector.get(`/users/retrieveTasks/${address}`);
+		if(response.status === 200){
+			console.log("Tasks data:", response.data.tasks);
+			setClaimables(response.data.tasks);
+			// Calculate claimable
+			const claimableNow = response.data.tasks
+				.filter(t => t.claimed === false)
+				.reduce((sum, t) => sum + (t.amount || 0), 0);
+			setClaimable(claimableNow);
+		}
+	}
 
 	const history = [
 		{ title: "Submission Bonus", amount: 40, time: "2d ago" },
@@ -100,8 +114,8 @@ export default function Rewards() {
 					</div>
 					<div className="rounded-2xl backdrop-blur-sm bg-white/0 border border-white/5 p-6">
 						<div className="text-sm text-gray-300/70">Claimable Now</div>
-						<div className="text-4xl font-bold text-white mt-2">450</div>
-						<div className="text-xs text-gray-300/60 mt-2">3 pending rewards</div>
+						<div className="text-4xl font-bold text-white mt-2">{claimable}</div>
+						<div className="text-xs text-gray-300/60 mt-2">{claimables.length} pending rewards</div>
 					</div>
 					<div className="rounded-2xl backdrop-blur-sm bg-white/0 border border-white/5 p-6">
 						<div className="text-sm text-gray-300/70">Rank</div>

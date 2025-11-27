@@ -175,7 +175,7 @@ export default function EventList() {
 									
 									<button
 										className="mt-4 h-9 px-4 rounded-full border border-white/10 text-white/90 hover:bg-white/10 text-sm w-fit"
-										onClick={() => navigate(`/Event/${ev.event_id || ev.id}`)}
+										onClick={() => navigate(`/Event?id=${ev.event_id || ev.id}`)}
 									>View more</button>
 								</div>
 								

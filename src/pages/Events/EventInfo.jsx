@@ -8,6 +8,7 @@ import { prepareContractCall } from "thirdweb";
 import { useSendTransaction } from "thirdweb/react";
 import { hackTokenContract } from "../../main";
 import { useMessageModal } from "../../context/MessageModal";
+import { useSearchParams } from "react-router-dom";
 
 
 // Shows tiers with progress and basic actions placeholder
@@ -16,9 +17,10 @@ export default function EventInfo() {
 	const activeWallet = useActiveWallet();
 	const address = activeWallet?.getAccount()?.address;
 	const { events } = useUser();
-	const { id: eventId } = useParams();
 	const { showMessage } = useMessageModal();
 	const [event, setEvent] = useState(null);
+	const [searchParams] = useSearchParams();
+	const eventId = searchParams.get("id") || "EVT-1"; // fallback mock id
 	
 	// Proper thirdweb transaction hook
 	const { mutate: sendTx, isPending: txPending } = useSendTransaction();
@@ -30,53 +32,92 @@ export default function EventInfo() {
 			return;
 		}
 		if (txPending) return; // prevent double clicks
-		try {
-			// Backend expects { priceBought, tierName }
-			const payload = {
-				priceBought: tier.price, // numeric token or currency value
-				tierName: tier.tierName,
-				eventTitle: event.event_title,
-			};
-			const response = await connector.post(`events/joinEvent/${eventId}/${address}`, payload);
 
-			// Burn 5 tokens (example). Adjust logic based on tier.price if desired.
-			const tokensToBurn = 0n;
+		try {
+			// Calculate tokens to burn based on tier price
+			const tokensToBurn = BigInt(tier.price);
 			const amount = tokensToBurn * 10n ** 18n;
 
-			if (response.status === 200) {
+			// First burn the tokens
+			if (tokensToBurn > 0n) {
 				const transaction = prepareContractCall({
 					contract: hackTokenContract,
 					method: "function burn(uint256 value)",
 					params: [amount],
 				});
+
 				sendTx(transaction, {
-					onSuccess: () => {
-						showMessage({
-							title: 'Success',
-							message: `Joined ${tier.tierName}. Burned ${tokensToBurn.toString()} HACK.`,
-							type: 'success',
-							autoCloseMs: 3000,
-						});
-						navigate('/Tickets');
+					onSuccess: async () => {
+						// Only create ticket after successful burn
+						try {
+							const payload = {
+								priceBought: tier.price,
+								tierName: tier.tierName,
+								eventTitle: event.event_title,
+							};
+							const response = await connector.post(`events/joinEvent/${eventId}/${address}`, payload);
+
+							if (response.status === 200) {
+								showMessage({
+									title: 'Success',
+									message: `Joined ${tier.tierName}. Burned ${tokensToBurn.toString()} HACK.`,
+									type: 'success',
+									autoCloseMs: 3000,
+								});
+								navigate('/Tickets');
+							} else {
+								showMessage({
+									title: 'Join Failed',
+									message: 'Tokens burned but ticket creation failed. Contact support.',
+									type: 'error',
+									autoCloseMs: 3000,
+								});
+							}
+						} catch (err) {
+							console.error('Ticket creation error:', err);
+							showMessage({
+								title: 'Error',
+								message: 'Tokens burned but ticket creation failed. Contact support.',
+								type: 'error',
+								autoCloseMs: 3000,
+							});
+						}
 					},
 					onError: (error) => {
 						console.error('Burn transaction error:', error);
 						showMessage({
-							title: 'Event Joined',
-							message: `Joined ${tier.tierName}. Burn failed — retry later.`,
-							type: 'warning',
+							title: 'Transaction Failed',
+							message: 'Token burn failed. No ticket created.',
+							type: 'error',
 							autoCloseMs: 3000,
 						});
-						navigate('/Events');
 					}
 				});
 			} else {
-				showMessage({
-					title: 'Join Failed',
-					message: 'Failed to join: ' + (response.data?.message || 'Unknown error'),
-					type: 'error',
-					autoCloseMs: 3000,
-				});
+				// Free ticket - no burn needed
+				const payload = {
+					priceBought: tier.price,
+					tierName: tier.tierName,
+					eventTitle: event.event_title,
+				};
+				const response = await connector.post(`events/joinEvent/${eventId}/${address}`, payload);
+
+				if (response.status === 200) {
+					showMessage({
+						title: 'Success',
+						message: `Joined ${tier.tierName} (Free ticket).`,
+						type: 'success',
+						autoCloseMs: 3000,
+					});
+					navigate('/Tickets');
+				} else {
+					showMessage({
+						title: 'Join Failed',
+						message: 'Failed to join: ' + (response.data?.message || 'Unknown error'),
+						type: 'error',
+						autoCloseMs: 3000,
+					});
+				}
 			}
 		} catch (err) {
 			console.error('Join event error:', err);
@@ -166,7 +207,7 @@ export default function EventInfo() {
 												<div key={tier.tierName} className="border border-white/10 rounded-lg p-3 bg-white/0">
 													<div className="flex items-center justify-between">
 														<div className="text-white/90 text-sm font-medium">{tier.tierName}</div>
-														<div className="text-xs text-gray-300/70">{tier.price === 0 ? 'Free' : `${tier.price} $`} • Rewards {tier.hackRewards}</div>
+														<div className="text-xs text-gray-300/70">{tier.price === 0 ? 'Free' : `${tier.price} $HACK`}</div>
 													</div>
 													<div className="mt-2 h-2 rounded-full bg-white/5 overflow-hidden">
 														<div className="h-full bg-gradient-to-r from-green-400/60 to-green-200/40" style={{ width: `${pct}%` }} />
@@ -191,7 +232,7 @@ export default function EventInfo() {
 									<div className="flex flex-col">
 									<button
 										className="mt-3 h-8 px-3 rounded-full border border-white/10 text-white/80 hover:bg-white/10 text-xs"
-										onClick={() => 	navigate(`/Scanner/${event.event_id}`)} 
+										onClick={() => 	navigate(`/Scanner?id=${event.event_id}`)} 
 									>Scan Attendees</button>
 									<button
 										className="mt-3 h-8 px-3 rounded-full border border-white/10 text-white/80 hover:bg-white/10 text-xs"

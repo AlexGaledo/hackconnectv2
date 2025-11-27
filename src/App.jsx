@@ -152,7 +152,7 @@ function App() {
             }
           />
           <Route
-            path="/Event/:id"
+            path="/Event"
             element={
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -165,7 +165,7 @@ function App() {
             }
           />
           <Route
-            path="/Scanner/:id"
+            path="/Scanner"
             element={
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

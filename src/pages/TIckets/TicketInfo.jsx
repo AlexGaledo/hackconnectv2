@@ -6,6 +6,7 @@ import { useUser } from "../../context/UserContext";
 import { connector } from "../../api/axios";
 
 
+
 // This page displays ticket info matching the Tickets schema
 // Tickets (Collection)
 //  uid (Document)
@@ -34,19 +35,26 @@ export default function TicketInfo() {
 			return;
 		}
 		try {
+			// Fetch the image as a blob
 			const response = await fetch(ticket.qrCodeUrl);
+			if (!response.ok) throw new Error('Failed to fetch QR code');
+			
 			const blob = await response.blob();
-			const blobUrl = window.URL.createObjectURL(blob);
-
-			const link = document.createElement("a");
+			const blobUrl = URL.createObjectURL(blob);
+			
+			// Create download link
+			const link = document.createElement('a');
 			link.href = blobUrl;
-			link.download = `ticket-${ticket.ticketId}.png`;
+			link.download = `Ticket_${ticket.ticketId}_QR.png`;
+			document.body.appendChild(link);
 			link.click();
-
-			window.URL.revokeObjectURL(blobUrl);
+			document.body.removeChild(link);
+			
+			// Clean up blob URL
+			URL.revokeObjectURL(blobUrl);
 		} catch (error) {
 			console.error('Download failed:', error);
-			alert('Failed to download QR code');
+			alert('Failed to download QR code. Please try right-clicking the image and saving it.');
 		}
 	};
 
@@ -136,7 +144,7 @@ export default function TicketInfo() {
 									</div>
 									<div>
 										<div className="text-xs text-gray-300/60">Price Bought</div>
-										<div className="text-white/90">{activeTicket.priceBought === 0 ? 'Free' : `${activeTicket.priceBought} tokens`}</div>
+										<div className="text-white/90">{activeTicket.priceBought === 0 ? 'Free' : `${activeTicket.priceBought} $HACK`}</div>
 									</div>
 									<div>
 										<div className="text-xs text-gray-300/60">Purchased At</div>
@@ -155,10 +163,6 @@ export default function TicketInfo() {
 									<div>
 										<div className="text-xs text-gray-300/60">Status</div>
 										<div className={`text-sm font-medium ${activeTicket.status === 'valid' ? 'text-green-300' : activeTicket.status === 'used' ? 'text-yellow-300' : 'text-green-300'}`}>{activeTicket.status || 'active'}</div>
-									</div>
-									<div>
-										<div className="text-xs text-gray-300/60">Signature</div>
-										<div className="text-white/90 break-all text-xs">{activeTicket.signature?.slice(0, 16)}...</div>
 									</div>
 								</div>
 							</div>

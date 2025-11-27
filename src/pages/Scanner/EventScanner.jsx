@@ -5,12 +5,15 @@ import { btnPrimary } from "../../styles/reusables";
 import { connector } from "../../api/axios";
 import { useMessageModal } from "../../context/MessageModal";
 import { Html5QrcodeScanner } from "html5-qrcode";
+import { useSearchParams } from "react-router-dom";
+
 
 export default function EventScanner() {
 	const navigate = useNavigate();
 	const activeWallet = useActiveWallet();
 	const address = activeWallet?.getAccount()?.address;
-	const { id: eventId } = useParams();
+	const [searchParams] = useSearchParams();
+	const eventId = searchParams.get("id") || "EVT-1"; // fallback mock id
 	const { showMessage } = useMessageModal();
 	const scannerRef = useRef(null);
 	const html5QrcodeScannerRef = useRef(null);
@@ -20,6 +23,7 @@ export default function EventScanner() {
 	const [manualTicketId, setManualTicketId] = useState("");
 	const [attendees, setAttendees] = useState([]);
 	const [loading, setLoading] = useState(false);
+	const [uploadMode, setUploadMode] = useState(false);
 
 	useEffect(() => {
 		if (!address) {
@@ -88,20 +92,39 @@ export default function EventScanner() {
 		}
 	};
 
-	const verifyTicket = async (ticketId) => {
-		if (!ticketId || loading) return;
+	const verifyTicket = async (ticketData) => {
+		if (!ticketData || loading) return;
+		
+		// Stop scanner first
+		if (html5QrcodeScannerRef.current) {
+			await html5QrcodeScannerRef.current.clear().catch(err => console.error('Clear error:', err));
+			html5QrcodeScannerRef.current = null;
+			setScanning(false);
+		}
+		
 		setLoading(true);
 		try {
-			const response = await connector.post(`/events/verifyTicket`, {
-				ticketId: ticketId.trim(),
-				eventId,
-				scannedBy: address,
-			});
+			// Parse QR code data if it's JSON
+			let ticketInfo;
+			try {
+				ticketInfo = typeof ticketData === 'string' ? JSON.parse(ticketData) : ticketData;
+			} catch (e) {
+				// If not JSON, treat as plain ticket ID
+				ticketInfo = { signature: ticketData.trim() };
+			}
 
+			// Extract signature (ticket ID) and wallet address
+			const ticketId = ticketInfo.ticketId || null;
+			const ticketSignature = ticketInfo.signature || null;
+			const walletAddress = ticketInfo.walletAddress || null;
+
+			const response = await connector.post(`/events/verifyTicket/${eventId}`,{
+				qr_data: ticketInfo
+			} );
 			if (response.status === 200) {
 				showMessage({
 					title: 'Ticket Verified',
-					message: `Attendee checked in successfully.`,
+					message: `Attendee ${walletAddress ? walletAddress.slice(0, 6) + '...' : ''} checked in successfully.`,
 					type: 'success',
 					autoCloseMs: 2000,
 				});
@@ -123,40 +146,116 @@ export default function EventScanner() {
 	};
 
 	const startScanner = () => {
-		if (!scannerRef.current || html5QrcodeScannerRef.current) return;
+		if (html5QrcodeScannerRef.current) {
+			console.log('Scanner already running');
+			return;
+		}
 		
-		const scanner = new Html5QrcodeScanner(
-			"qr-reader",
-			{ fps: 10, qrbox: { width: 250, height: 250 } },
-			false
-		);
-
-		scanner.render(
-			(decodedText) => {
-				// Success callback
-				if (decodedText) {
-					scanner.clear();
-					html5QrcodeScannerRef.current = null;
-					setScanning(false);
-					verifyTicket(decodedText);
-				}
-			},
-			(error) => {
-				// Error callback (silent, just scanning)
-				console.debug('QR scan error:', error);
-			}
-		);
-
-		html5QrcodeScannerRef.current = scanner;
 		setScanning(true);
+		
+		// Small delay to ensure DOM is ready
+		setTimeout(() => {
+			try {
+				const scanner = new Html5QrcodeScanner(
+					"qr-reader",
+					{ 
+						fps: 5, // Reduced FPS for better accuracy
+						qrbox: 300, // Larger box for easier targeting
+						aspectRatio: 1.0,
+						showTorchButtonIfSupported: true,
+						formatsToSupport: [0], // Only QR codes (0 = QR_CODE)
+						experimentalFeatures: {
+							useBarCodeDetectorIfSupported: true
+						},
+						rememberLastUsedCamera: true,
+						videoConstraints: {
+							facingMode: "environment", // Use back camera on mobile
+							width: { ideal: 1280 },
+							height: { ideal: 720 }
+						},
+						disableFlip: false // Try both orientations
+					},
+					false
+				);
+
+				scanner.render(
+					(decodedText) => {
+						// Success callback
+						console.log('QR Code detected:', decodedText);
+						if (decodedText) {
+							verifyTicket(decodedText);
+						}
+					},
+					(error) => {
+						// Error callback (silent, just scanning)
+						// This fires on every frame, don't log unless it's a critical error
+						if (error && !error.includes('NotFoundException')) {
+							console.warn('Scanner error:', error);
+						}
+					}
+				);
+
+				html5QrcodeScannerRef.current = scanner;
+			} catch (error) {
+				console.error('Scanner initialization error:', error);
+				setScanning(false);
+				showMessage({
+					title: 'Scanner Error',
+					message: 'Failed to start camera. Please check permissions.',
+					type: 'error',
+					autoCloseMs: 3000,
+				});
+			}
+		}, 100);
 	};
 
 	const stopScanner = () => {
 		if (html5QrcodeScannerRef.current) {
-			html5QrcodeScannerRef.current.clear().catch(err => console.error('Stop error:', err));
-			html5QrcodeScannerRef.current = null;
+			html5QrcodeScannerRef.current.clear()
+				.then(() => {
+					console.log('Scanner cleared successfully');
+					html5QrcodeScannerRef.current = null;
+					setScanning(false);
+				})
+				.catch(err => {
+					console.error('Stop error:', err);
+					html5QrcodeScannerRef.current = null;
+					setScanning(false);
+				});
+		} else {
+			setScanning(false);
 		}
-		setScanning(false);
+	};
+
+	const handleFileUpload = async (e) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+
+		setLoading(true);
+		try {
+			// Use html5-qrcode's file scanning directly
+			const { Html5Qrcode } = await import('html5-qrcode');
+			const html5QrCode = new Html5Qrcode("temp-qr-reader");
+			
+			const result = await html5QrCode.scanFile(file, true);
+			console.log('QR decoded from file:', result);
+			
+			if (result) {
+				await verifyTicket(result);
+			}
+		} catch (error) {
+			console.error('File scan error:', error);
+			showMessage({
+				title: 'Scan Failed',
+				message: 'Could not read QR code from image. Try manual entry instead.',
+				type: 'error',
+				autoCloseMs: 3000,
+			});
+		} finally {
+			setLoading(false);
+			// Reset file input
+			e.target.value = '';
+		}
 	};
 
 	const handleScan = (result, error) => {
@@ -174,7 +273,24 @@ export default function EventScanner() {
 
 	const handleManualVerify = async (e) => {
 		e.preventDefault();
-		try{
+		if (!manualTicketId.trim()) return;
+		
+		setLoading(true);
+		try {
+			// Try to parse as JSON first
+			let ticketInfo;
+			try {
+				ticketInfo = JSON.parse(manualTicketId.trim());
+				// If it's JSON, use the full verifyTicket flow
+				await verifyTicket(manualTicketId.trim());
+				setManualTicketId("");
+				return;
+			} catch (e) {
+				// Not JSON, treat as plain ticket ID
+				ticketInfo = { ticketId: manualTicketId.trim() };
+			}
+
+			// Plain ticket ID - use the old endpoint
 			const response = await connector.post(`/events/verifyTicketById/${manualTicketId.trim()}/${eventId}`);
 			if (response.status === 200) {
 				showMessage({
@@ -184,13 +300,18 @@ export default function EventScanner() {
 					autoCloseMs: 2000,
 				});
 				fetchAttendees();
+				setManualTicketId("");
 			}
 		} catch (error) {
 			console.error('Manual verification error:', error);
 			showMessage({
 				title: 'Verification Failed',
 				message: error?.response?.data?.detail || 'Ticket verification failed.',
+				type: 'error',
+				autoCloseMs: 3000,
 			});
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -253,34 +374,62 @@ export default function EventScanner() {
 					<div className="rounded-2xl backdrop-blur-sm bg-white/0 border border-white/5 p-6">
 						<h2 className="text-xl sm:text-2xl font-semibold text-white mb-4">QR Scanner</h2>
 						
+						<div id="temp-qr-reader" style={{ display: 'none' }}></div>
+						
 						{scanning ? (
 							<div className="space-y-4">
-								<div id="qr-reader" ref={scannerRef} className="rounded-lg overflow-hidden"></div>
+								<div id="qr-reader" className="rounded-lg overflow-hidden w-full min-h-[300px]"></div>
 								<button
 									onClick={stopScanner}
 									className="w-full h-10 px-4 rounded-full border border-white/10 text-white/90 hover:bg-white/10 text-sm"
 								>
 									Stop Scanning
 								</button>
+								<p className="text-xs text-gray-400 mt-2">
+									Allow camera permissions when prompted. Point your camera at the QR code on the ticket.
+								</p>
 							</div>
 						) : (
-							<button
-								onClick={startScanner}
-								className={`${btnPrimary} w-full mb-4`}
-							>
-								Start Camera Scanner
-							</button>
+							<div className="space-y-4">
+								<button
+									onClick={startScanner}
+									className={`${btnPrimary} w-full`}
+								>
+									Start Camera Scanner
+								</button>
+								<div className="relative">
+									<input
+										type="file"
+										accept="image/*"
+										onChange={handleFileUpload}
+										className="hidden"
+										id="qr-file-upload"
+										disabled={loading}
+									/>
+									<label
+										htmlFor="qr-file-upload"
+										className={`${btnPrimary} w-full cursor-pointer text-center block ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+									>
+										{loading ? 'Processing...' : 'Upload QR Image'}
+									</label>
+								</div>
+								<p className="text-xs text-gray-400">
+									Use camera for live scanning or upload a QR code image file.
+								</p>
+							</div>
 						)}
 
 						<div className="mt-6 pt-6 border-t border-white/5">
 							<h3 className="text-white/90 font-medium mb-3">Manual Entry</h3>
+							<p className="text-xs text-gray-400 mb-3">
+								If camera scanning doesn't work, paste the full JSON from the QR code or just the ticket ID below:
+							</p>
 							<form onSubmit={handleManualVerify} className="space-y-3">
-								<input
-									type="text"
+								<textarea
 									value={manualTicketId}
 									onChange={(e) => setManualTicketId(e.target.value)}
-									placeholder="Enter Ticket ID"
-									className="w-full rounded-xl bg-white/0 border border-white/5 focus:border-white/30 focus:outline-none px-4 py-3 text-white placeholder-gray-500 text-sm"
+									placeholder='Paste ticket ID or full QR JSON (e.g., {"eventTitle": "...", "ticketId": "...", ...})'
+									className="w-full rounded-xl bg-white/0 border border-white/5 focus:border-white/30 focus:outline-none px-4 py-3 text-white placeholder-gray-500 text-sm min-h-[80px]"
 								/>
 								<button
 									type="submit"
