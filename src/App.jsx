@@ -5,6 +5,7 @@ import LandingPage from './pages/Home.jsx';
 import Dashboard from './pages/Dashboard/Dashboard.jsx';
 import CreateProject from './pages/Create/CreateProject.jsx';
 import Community from './pages/Community/Community.jsx';
+import Forum from './pages/Forum/Forum.jsx';
 import Rewards from './pages/Rewards/Rewards.jsx';
 import Profile from './pages/Profile/Profile.jsx';
 import EventScanner from './pages/Scanner/EventScanner.jsx';
@@ -83,6 +84,19 @@ function App() {
                 transition={{ duration: 0.3 }}
               >
                 <Community />
+              </motion.div>
+            }
+          />
+          <Route
+            path="/Forum"
+            element={
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Forum />
               </motion.div>
             }
           />
