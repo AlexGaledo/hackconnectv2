@@ -1,11 +1,13 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useActiveWallet, useReadContract, useWalletBalance } from "thirdweb/react";
+import { useActiveWallet, useReadContract, useWalletBalance, useSendTransaction } from "thirdweb/react";
 import { btnPrimary } from "../../styles/reusables";
 import { hackTokenContract } from "../../main";
 import { balanceOf } from "thirdweb/extensions/erc20";
 import { useState } from "react";
 import { connector } from "../../api/axios";
+import {useMessageModal } from "../../context/MessageModal";
+import { prepareContractCall } from "thirdweb";
 
 export default function Rewards() {
 	const navigate = useNavigate();
@@ -18,8 +20,10 @@ export default function Rewards() {
 	const [claimable, setClaimable] = useState(0);
 	const [tasks, setTasks] = useState([]);
 	const [claimables, setClaimables] = useState(tasks.filter(t => t.claimed === false));
-
+	const { showMessage } = useMessageModal();
 	const tokenBalance = hackTokenBalance ? Number(hackTokenBalance) / 10**18 : 0;
+	const { mutate: sendTransaction} = useSendTransaction();
+
 	
 	
 
@@ -44,6 +48,72 @@ export default function Rewards() {
 		}
 	}
 
+	const handleClaim = async(task) => {
+		if (task.claimed === true) {
+			showMessage({
+				type: "info",
+				title: "No Rewards",
+				autoCloseMs: 3000,
+				message: "rewards already claimed",
+			});
+			return;
+		}
+
+		try {
+			// Prepare amount as BigInt (task.taskRewards may be number)
+			const amountUnits = BigInt(Math.round((task.taskRewards || 0) * 1e18));
+			const transaction = prepareContractCall({
+				contract: hackTokenContract,
+				method: "function transfer(address to, uint256 amount) returns (bool)",
+				params: [address, amountUnits],
+			});
+
+			// Use sendTransaction with callbacks so we don't assume immediate status
+			sendTransaction(transaction, {
+				onSuccess: async (txResult) => {
+					// Transaction submitted and succeeded on-chain (or at least was broadcast)
+					try {
+						const response = await connector.get(`users/claimTask/${task.taskId}`);
+						if (response.status === 200) {
+							console.log("Task claim response:", response.data);
+							showMessage({
+								type: "success",
+								title: "Rewards Claimed",
+								autoCloseMs: 5000,
+								message: `Successfully claimed ${task.taskRewards} $HACK! It may take a few minutes to reflect in your wallet.`
+							});
+							await retrieveTasks();
+						} else {
+							showMessage({ type: 'error', title: 'Claim Failed', message: 'Claim succeeded on-chain but backend update failed.' });
+						}
+					} catch (err) {
+						console.error('Claim backend update error:', err);
+						showMessage({ type: 'error', title: 'Claim Failed', message: 'On-chain transfer succeeded but marking claim failed.' });
+					}
+				},
+				onError: (err) => {
+					console.error('Burn/transfer transaction error:', err);
+					showMessage({
+						type: "error",
+						title: "Claim Failed",
+						autoCloseMs: 5000,
+						message: `Failed to send tokens for ${task.taskTitle}. Transaction was not completed.`,
+					});
+				}
+			});
+
+		} catch (error) {
+			console.log("Error preparing token transfer:", error);
+			showMessage({
+				type: "error",
+				title: "Claim Failed",
+				autoCloseMs: 5000,
+				message: `Failed to claim rewards for ${task.taskTitle}. Please try again later.`,
+			});
+			return;
+		}
+		
+	}
 	const history = [
 		{ title: "Submission Bonus", amount: 40, time: "2d ago" },
 		{ title: "Daily Streak", amount: 10, time: "3d ago" },
@@ -138,12 +208,12 @@ export default function Rewards() {
 								<div key={i} className="rounded-xl bg-white/0 border border-white/5 p-4 hover:bg-white/5 transition">
 									<div className="flex items-center justify-between">
 										<div>
-											<div className="text-white font-medium">{r.title}</div>
-											<div className="text-xs text-gray-300/70 mt-1">{r.desc}</div>
+											<div className="text-white font-medium">{r.taskTitle}</div>
+											<div className="text-xs text-gray-300/70 mt-1">{r.taskDescription}</div>
 										</div>
 										<div className="text-right">
-											<div className="text-white font-semibold">{r.amount} $HACK</div>
-											<button className="mt-2 h-9 px-4 rounded-full border border-white/10 text-white/90 hover:bg-white/10 text-sm" onClick={() => alert(`Claimed ${r.amount} $HACK (demo)`)}>Claim</button>
+											<div className="text-white font-semibold">{r.taskRewards} $HACK</div>
+											<button className="mt-2 h-9 px-4 rounded-full border border-white/10 text-white/90 hover:bg-white/10 text-sm" onClick={() => {handleClaim(r)}}>Claim</button>
 										</div>
 									</div>
 								</div>
