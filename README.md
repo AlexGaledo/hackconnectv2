@@ -26,7 +26,7 @@ It utilizes **Web3** for a **secure environment**, **transparent transactions**,
 
 ---
 ## How to use
-- soon... 
+Try it out today at 👉 [HackConnect](https://hackconnect-v2.web.app/)
 
 
  
